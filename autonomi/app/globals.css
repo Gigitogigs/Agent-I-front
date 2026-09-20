@@ -88,3 +88,9 @@ body {
 ::-webkit-scrollbar-track  { background: transparent; }
 ::-webkit-scrollbar-thumb  { background: var(--color-gray-300); border-radius: 3px; }
 .dark ::-webkit-scrollbar-thumb { background: var(--color-gray-700); }
+
+/* ── Native Form Elements ────────────────────────────────────────────────── */
+option {
+  background-color: var(--bg-surface);
+  color: var(--fg-base);
+}
