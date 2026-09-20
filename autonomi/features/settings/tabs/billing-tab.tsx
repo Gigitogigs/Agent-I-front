@@ -1,4 +1,4 @@
-import { Download, Plus } from "lucide-react";
+import { Download, CreditCard, Smartphone, Building } from "lucide-react";
 import type { BillingPlan } from "../use-settings";
 
 interface BillingTabProps {
@@ -46,25 +46,52 @@ export function BillingTab({ billing }: BillingTabProps) {
             <label key={pm.id} className="flex items-center justify-between p-3 border border-[var(--border-hairline)] rounded-lg cursor-pointer hover:border-[var(--fg-subtle)] transition-colors">
               <div className="flex items-center gap-3">
                 <input type="radio" name="payment_method" defaultChecked={pm.isDefault} className="mt-0.5 cursor-pointer" />
+                {pm.type === "card" && <CreditCard size={16} className="text-[var(--fg-subtle)]" />}
+                {pm.type === "paypal" && <span className="font-bold text-[var(--fg-subtle)] text-xs italic ml-1">P</span>}
+                {pm.type === "mpesa" && <Smartphone size={16} className="text-[var(--fg-subtle)]" />}
+                {pm.type === "bank" && <Building size={16} className="text-[var(--fg-subtle)]" />}
                 <span className="text-sm font-medium text-[var(--fg-base)]">{pm.label}</span>
               </div>
               <button className="text-xs font-medium text-[var(--fg-base)] hover:underline">Edit</button>
             </label>
           ))}
           
-          <div className="space-y-2 mt-4 ml-1">
-            <button className="flex items-center gap-2 text-xs font-medium text-[var(--fg-subtle)] hover:text-[var(--fg-base)] transition-colors">
-              <div className="w-4 h-4 rounded-full border border-[var(--fg-subtle)] flex items-center justify-center"></div>
-              Add PayPal
-            </button>
-            <button className="flex items-center gap-2 text-xs font-medium text-[var(--fg-subtle)] hover:text-[var(--fg-base)] transition-colors">
-              <div className="w-4 h-4 rounded-full border border-[var(--fg-subtle)] flex items-center justify-center"></div>
-              Add M-Pesa
-            </button>
-            <button className="flex items-center gap-2 text-xs font-medium text-[var(--fg-subtle)] hover:text-[var(--fg-base)] transition-colors">
-              <div className="w-4 h-4 rounded-full border border-[var(--fg-subtle)] flex items-center justify-center"></div>
-              Add bank transfer (enterprise)
-            </button>
+          <div className="space-y-3 mt-6 pt-6 border-t border-[var(--border-hairline)]">
+            <h4 className="text-xs font-medium text-[var(--fg-muted)] uppercase tracking-wider mb-2">Add Payment Method</h4>
+            
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="w-6 h-6 rounded flex items-center justify-center font-bold text-xs italic bg-[#00457C] text-white">P</span>
+                <span className="text-sm font-medium text-[var(--fg-base)]">PayPal</span>
+              </div>
+              <button className="text-xs font-medium text-[var(--fg-base)] border border-[var(--border-hairline)] bg-[var(--bg-surface)] px-3 py-1.5 rounded hover:bg-[var(--bg-muted)] transition-colors">
+                Connect
+              </button>
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 rounded flex items-center justify-center bg-[var(--color-success)] text-white">
+                  <Smartphone size={14} />
+                </div>
+                <span className="text-sm font-medium text-[var(--fg-base)]">M-Pesa</span>
+              </div>
+              <button className="text-xs font-medium text-[var(--fg-base)] border border-[var(--border-hairline)] bg-[var(--bg-surface)] px-3 py-1.5 rounded hover:bg-[var(--bg-muted)] transition-colors">
+                Connect
+              </button>
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 rounded flex items-center justify-center bg-[var(--fg-base)] text-[var(--bg-surface)]">
+                  <Building size={14} />
+                </div>
+                <span className="text-sm font-medium text-[var(--fg-base)]">Bank transfer (enterprise)</span>
+              </div>
+              <button className="text-xs font-medium text-[var(--fg-base)] border border-[var(--border-hairline)] bg-[var(--bg-surface)] px-3 py-1.5 rounded hover:bg-[var(--bg-muted)] transition-colors">
+                Contact sales
+              </button>
+            </div>
           </div>
         </div>
       </div>

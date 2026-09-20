@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
+  Users,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -25,6 +26,7 @@ const NAV_ITEMS = [
   { href: "/knowledge-base", label: "Knowledge Base",   icon: BookOpen },
   { href: "/agent-stats",  label: "Agent Stats",         icon: BarChart2 },
   { href: "/agent-config", label: "Agent Configuration", icon: Settings2 },
+  { href: "/team",         label: "Team & Roles",        icon: Users },
   { href: "/settings",     label: "Settings",            icon: Settings },
 ] as const;
 
@@ -81,8 +83,11 @@ export default function Sidebar() {
       </nav>
 
       {/* Bottom: user + logout */}
-      <div className="border-t border-[var(--border-hairline)] p-3 shrink-0">
-        <div className="flex items-center gap-2 overflow-hidden">
+      <div className="border-t border-[var(--border-hairline)] p-3 shrink-0 flex items-center gap-2 overflow-hidden">
+        <Link 
+          href="/settings"
+          className="flex-1 flex items-center gap-2 min-w-0 hover:bg-[var(--bg-muted)] p-1 -ml-1 rounded transition-colors"
+        >
           <div className="w-7 h-7 rounded-full bg-[var(--color-gray-300)] dark:bg-[var(--color-gray-700)] shrink-0" />
           {!collapsed && (
             <div className="flex-1 min-w-0">
@@ -90,15 +95,16 @@ export default function Sidebar() {
               <p className="text-xs text-[var(--fg-muted)] truncate">admin@autonomi.ai</p>
             </div>
           )}
-          {!collapsed && (
-            <button
-              title="Logout"
-              className="text-[var(--fg-subtle)] hover:text-[var(--fg-base)] transition-colors"
-            >
-              <LogOut size={14} />
-            </button>
-          )}
-        </div>
+        </Link>
+        {!collapsed && (
+          <button
+            title="Logout"
+            onClick={() => window.location.href = "/login"}
+            className="text-[var(--fg-subtle)] hover:text-[var(--fg-base)] transition-colors p-1"
+          >
+            <LogOut size={14} />
+          </button>
+        )}
       </div>
 
       {/* Collapse toggle */}

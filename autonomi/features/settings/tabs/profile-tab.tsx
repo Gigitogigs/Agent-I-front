@@ -1,7 +1,9 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Camera } from "lucide-react";
 import type { UserProfile } from "../use-settings";
 import { TIMEZONES } from "../use-settings";
+import { DeleteWorkspaceModal } from "./delete-workspace-modal";
+import { DeleteAccountModal } from "./delete-account-modal";
 
 interface ProfileTabProps {
   profile: UserProfile;
@@ -10,6 +12,12 @@ interface ProfileTabProps {
 
 export function ProfileTab({ profile, onChange }: ProfileTabProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] = useState(false);
+
+  // TODO: Use real user role context when available.
+  // Gating this to Owner-only per architecture document.
+  const isOwner = true; 
 
   const handlePhotoClick = () => {
     fileInputRef.current?.click();
@@ -28,6 +36,18 @@ export function ProfileTab({ profile, onChange }: ProfileTabProps) {
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
+  };
+
+  const handleScheduleDeletion = (password: string) => {
+    localStorage.setItem("workspace_deletion_status", "grace_period");
+    setIsDeleteModalOpen(false);
+    window.location.reload();
+  };
+
+  const handleScheduleAccountDeletion = (password: string) => {
+    localStorage.setItem("workspace_deletion_status", "account_grace_period");
+    setIsDeleteAccountModalOpen(false);
+    window.location.reload();
   };
 
   return (
@@ -125,23 +145,61 @@ export function ProfileTab({ profile, onChange }: ProfileTabProps) {
             Log out of your account on this device.
           </p>
         </div>
-        <button className="text-sm font-medium text-[var(--fg-base)] border border-[var(--border-hairline)] bg-[var(--bg-surface)] px-4 py-2 rounded hover:bg-[var(--bg-muted)] transition-colors whitespace-nowrap">
+        <button 
+          onClick={() => window.location.href = "/login"}
+          className="text-sm font-medium text-[var(--fg-base)] border border-[var(--border-hairline)] bg-[var(--bg-surface)] px-4 py-2 rounded hover:bg-[var(--bg-muted)] transition-colors whitespace-nowrap"
+        >
           Log out
         </button>
       </div>
 
-      {/* Delete Account */}
-      <div className="pt-8 border-t border-[var(--border-hairline)] flex items-center justify-between gap-4">
-        <div className="max-w-sm">
-          <h3 className="text-sm font-semibold text-[var(--color-danger)]">Delete Account</h3>
-          <p className="text-sm text-[var(--fg-muted)] mt-1 leading-relaxed">
-            Deleting your account is permanent and cannot be undone. All workspace data will be removed.
-          </p>
+      {/* Delete Workspace */}
+      {isOwner && (
+        <div className="pt-8 border-t border-[var(--border-hairline)] flex items-center justify-between gap-4">
+          <div className="max-w-sm">
+            <h3 className="text-sm font-semibold text-[var(--color-danger)]">Delete Workspace</h3>
+            <p className="text-sm text-[var(--fg-muted)] mt-1 leading-relaxed">
+              Deleting your workspace is permanent and cannot be undone after the 48hr grace period. All workspace data will be removed. (Owner only)
+            </p>
+          </div>
+          <button 
+            onClick={() => setIsDeleteModalOpen(true)}
+            className="text-sm font-medium text-[var(--color-danger)] border border-[var(--color-danger)] bg-transparent px-4 py-2 rounded hover:bg-[var(--color-danger)] hover:text-white transition-colors whitespace-nowrap"
+          >
+            Delete workspace
+          </button>
         </div>
-        <button className="text-sm font-medium text-[var(--color-danger)] border border-[var(--color-danger)] bg-transparent px-4 py-2 rounded hover:bg-[var(--color-danger)] hover:text-white transition-colors whitespace-nowrap">
-          Delete account
-        </button>
-      </div>
+      )}
+
+      {/* Delete Account */}
+      {isOwner && (
+        <div className="pt-8 border-t border-[var(--border-hairline)] flex items-center justify-between gap-4">
+          <div className="max-w-sm">
+            <h3 className="text-sm font-semibold text-[var(--color-danger)]">Delete Account</h3>
+            <p className="text-sm text-[var(--fg-muted)] mt-1 leading-relaxed">
+              Deleting your account is permanent. This will also schedule all workspaces you own for deletion.
+            </p>
+          </div>
+          <button 
+            onClick={() => setIsDeleteAccountModalOpen(true)}
+            className="text-sm font-medium text-white bg-[var(--color-danger)] px-4 py-2 rounded hover:opacity-90 transition-opacity whitespace-nowrap"
+          >
+            Delete account
+          </button>
+        </div>
+      )}
+
+      <DeleteWorkspaceModal 
+        isOpen={isDeleteModalOpen} 
+        onClose={() => setIsDeleteModalOpen(false)} 
+        onConfirm={handleScheduleDeletion}
+      />
+
+      <DeleteAccountModal 
+        isOpen={isDeleteAccountModalOpen} 
+        onClose={() => setIsDeleteAccountModalOpen(false)} 
+        onConfirm={handleScheduleAccountDeletion}
+      />
     </div>
   );
 }

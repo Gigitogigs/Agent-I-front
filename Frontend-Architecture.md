@@ -11,7 +11,7 @@ Langfuse, MCP adapter layer — see backend architecture docs.
 
 1. [Full Feature List (v1)](#1-full-feature-list-v1)
 2. [Consolidation Principle](#2-consolidation-principle)
-3. [Consolidated Page List (17 → 9 pages)](#3-consolidated-page-list-17--9-pages)
+3. [Consolidated Page List (17 → 10 pages)](#3-consolidated-page-list-17--10-pages)
 4. [UI Elements (not standalone pages)](#4-ui-elements-not-standalone-pages)
 5. [Page Templates](#5-page-templates)
 6. [Open Items for Next Step](#6-open-items-for-next-step)
@@ -24,8 +24,9 @@ Langfuse, MCP adapter layer — see backend architecture docs.
    - 7.6 [Knowledge Base](#76-knowledge-base)
    - 7.7 [Agent Stats Dashboard](#77-agent-stats-dashboard)
    - 7.8 [Agent Configuration](#78-agent-configuration)
-   - 7.9 [Settings](#79-settings)
-   - 7.10 [Onboarding Wizard](#710-onboarding-wizard)
+   - 7.9 [Team & Roles](#79-team--roles)
+   - 7.10 [Settings](#710-settings)
+   - 7.11 [Onboarding Wizard](#711-onboarding-wizard)
 8. [Tech Stack](#8-tech-stack)
 9. [Visual Design System](#9-visual-design-system)
 10. [Component Architecture](#10-component-architecture)
@@ -74,7 +75,7 @@ feature. This cuts navigation overhead without dropping any functionality.
 
 ---
 
-## 3. Consolidated Page List (17 → 9 pages)
+## 3. Consolidated Page List (17 → 10 pages)
 
 ### 1. Login / Signup
 - User signup & login (#1)
@@ -126,10 +127,13 @@ aren't agent-specific.
 - **Billing** tab — billing & plan/usage (#22)
 - **Integrations** tab — ongoing backend/integration connection management (#5, post-onboarding)
 
-*(Team & Roles / #20 dropped for v1 — not currently needed; can be added back as a
-tab later without changing the page structure.)*
+### 9. Team & Roles
+**Pattern: standalone list.** Promoted to its own top-level sidebar page rather than
+a Settings tab, since who has access is a distinct, frequently-referenced admin
+concern (and now governs workspace deletion) rather than a background setting.
+- Team/role management (#20)
 
-### 9. Homepage
+### 10. Homepage
 Landing page after login — surfaces the most important info from the other pages
 (pending approvals, agent stats snapshot, system health, recent conversations) as a
 quick-glance summary, each widget linking out to its full page. Not tied to a single
@@ -150,23 +154,23 @@ These live inside the pages above rather than getting their own URL:
 
 ## 5. Page Templates
 
-Consolidation reveals that most of the 9 pages reduce to **two repeating templates**:
+Consolidation reveals that most of the 10 pages reduce to **two repeating templates**:
 
 | Template | Used by |
 |---|---|
 | **List + Detail** (inbox pattern) | Approvals, Conversations |
 | **Rail + Tabs** (config pattern) | Agent Configuration, Settings |
-| Standalone | Login/Signup, Onboarding Wizard, Knowledge Base, Agent Stats Dashboard, Homepage |
+| Standalone | Login/Signup, Onboarding Wizard, Knowledge Base, Agent Stats Dashboard, Homepage, Team & Roles |
 
-Building these two templates well early pays off across 4 of the 9 pages.
+Building these two templates well early pays off across 4 of the 10 pages.
 
 ---
 
 ## 6. Open Items for Next Step
 
-- Lock v1 shipping scope (which of the 9 pages ship first — Approvals was the stated
+- Lock v1 shipping scope (which of the 10 pages ship first — Approvals was the stated
   starting point)
-- Page-level layout/design for each of the 9 pages
+- Page-level layout/design for each of the 10 pages
 - Decide order: Approvals → Agent Configuration → Agent Stats → rest
 
 ---
@@ -179,7 +183,7 @@ The shell wraps every page except Login/Signup: sidebar (nav) + top bar (cross-c
 actions). This is the skeleton the rest of the frontend inherits.
 
 **Decisions:**
-- **Left sidebar** for navigation (scales better than a top nav given 7 top-level
+- **Left sidebar** for navigation (scales better than a top nav given 8 top-level
   destinations, and doesn't collide with the rail+tabs pattern used inside Agent
   Configuration and Settings)
 - **Sidebar is collapsible** — for small screens/users who want more horizontal room
@@ -189,7 +193,7 @@ actions). This is the skeleton the rest of the frontend inherits.
 **Sidebar contents, top to bottom:**
 - Workspace switcher (pinned top — multi-tenant context first)
 - Nav items: Home, Approvals, Conversations, Knowledge Base, Agent Stats, Agent
-  Configuration, Settings
+  Configuration, Team & Roles, Settings
 - User/account menu + logout (pinned bottom)
 - Collapse toggle (collapses to icon-only rail; workspace switcher and nav items
   shrink to icons, labels appear on hover)
@@ -202,7 +206,7 @@ bell, account avatar.
 **Route:** `/` (or `/home`)
 
 **Purpose:** quick contact point to the most important features + a glance at
-metrics — not a replacement for any of the other 8 pages, just a fast summary with
+metrics — not a replacement for any of the other 9 pages, just a fast summary with
 links out to each.
 
 **Decision:** Pending Approvals is the top-priority widget (core business operation),
@@ -697,28 +701,42 @@ autosaving — config changes here are consequential enough to want an explicit 
 Switching tabs keeps the same agent selected; switching agents keeps the same tab
 selected.
 
-### 7.9 Settings
+### 7.9 Team & Roles
 
-**Route:** `/settings`
+**Route:** `/team`
 
-**Pattern:** rail (sections) + tabs, same shape as Agent Configuration — consistent
-visual language, different content axis (sections instead of agents).
+**Pattern:** standalone list — promoted to its own top-level sidebar page (between
+Agent Configuration and Settings) rather than a Settings tab, since access
+management is a frequently-referenced admin concern, not a background setting — and
+it now governs workspace deletion, which needs to be easy to find.
 
-**Rail:** Profile, Notifications, Billing, Integrations. *(Team & Roles dropped for
-v1 — not currently needed; the pattern leaves room to add it back later without
-changing the layout.)*
+**Roles (kept simple for v1 — expandable later):**
+- **Owner** — the person who created the workspace, by default. Full access, plus
+  the only role that can delete the workspace or transfer ownership to another
+  member. Exactly one per workspace.
+- **Admin** — full access (approvals, agent config, billing, team management) except
+  cannot delete the workspace.
+- **Operator** — can work approvals and conversations; no access to billing, agent
+  config, or team management.
+- **Read-only** — view-only across dashboards/conversations/stats; cannot approve,
+  reject, or change configuration.
 
-**Sections:**
-1. **Profile** — name, email, password change, timezone/locale. Default/first tab
-   (least consequential, safest landing spot).
-2. **Notifications** — destination config for SLA/approval alerts: email address,
-   webhook URL, toggles for which events trigger a notification (new escalation, SLA
-   breach, approval expired).
-3. **Billing** — current plan, usage against plan limits, upgrade/downgrade action,
-   payment method, invoice history.
-4. **Integrations** — ongoing connection management: active backend adapter
-   (Shopify/in-house), connection status, credentials, "reconnect" action. Same data
-   the Onboarding Wizard sets up initially, just the ongoing management view.
+**Components:**
+1. **Page-local search** — search members by name or email (handles pending invites,
+   which may have no name yet).
+2. **"+ Invite member"** — primary action, top-right, opens an invite form (email +
+   role, editable after they join).
+3. **Member table** — name, email, role (editable dropdown for non-Owner rows),
+   status (Active/Invited/Pending), last active, `⋮` overflow menu (remove member;
+   for the Owner's own row, "Transfer ownership" instead). Owner is always listed
+   first with a fixed role label, not a dropdown.
+4. **Pending invites** — shown in the same table with a "Pending" status, `—` for
+   last active, and a "Resend" action alongside the overflow menu.
+5. **Role permissions legend** — read-only reference table at the bottom, showing
+   what each role can/can't do, so an Admin knows exactly what they're granting when
+   inviting someone.
+6. **Remove member** — immediate, no grace period (this revokes access, it doesn't
+   destroy workspace data).
 
 **Layout:**
 
@@ -727,32 +745,248 @@ changing the layout.)*
 │            │  [Search...]                                      🔔    [Avatar]     │
 │ [Workspace │──────────────────────────────────────────────────────────────────────│
 │  Switcher] │                                                                      │
-│            │  Settings                                                           │
+│            │  Team & Roles                                    [ + Invite member ]│
 │────────────│                                                                      │
-│ 🏠 Home    │  ┌──────────────┐  Profile                                          │
-│ ✅ Approvals│  │ Profile   ◄──┼─ (selected)                                       │
-│ 💬 Convos  │  │ Notifications│  ──────────────────────────────────────────────   │
-│ 📚 KB      │  │ Billing      │                                                   │
-│ 📊 Stats   │  │ Integrations │  Name          [ Gigito                    ]      │
-│ ⚙️ Agent   │  └──────────────┘  Email         [ gigito@example.com        ]      │
-│    Config  │                    Password      [ Change password → ]              │
-│ 🔧 Settings│                    Timezone      [ Africa/Nairobi         ▾]        │
+│ 🏠 Home    │  [🔍 Search by name or email...]                                    │
+│ ✅ Approvals│──────────────────────────────────────────────────────────────────────│
+│ 💬 Convos  │  Name          Email               Role      Status    Last Active   │
+│ 📚 KB      │──────────────────────────────────────────────────────────────────────│
+│ 📊 Stats   │  Gigito        gigito@example.com  Owner     Active    Just now      │
+│ ⚙️ Agent   │──────────────────────────────────────────────────────────────────────│
+│    Config  │  Jane K.       jane@example.com     Admin  ▾  Active    2h ago    ⋮   │
+│ 👥 Team    │──────────────────────────────────────────────────────────────────────│
+│ 🔧 Settings│  Sam O.        sam@example.com      Operator▾ Active    1d ago    ⋮   │
+│            │──────────────────────────────────────────────────────────────────────│
+│            │  m.wanjiru@... —                    Operator▾ Pending   —   Resend  ⋮│
+│            │──────────────────────────────────────────────────────────────────────│
 │            │                                                                      │
-│            │                                            [ Save changes ]         │
-│            │                                                                      │
-│            │                                                                      │
+│            │  Role permissions                                                    │
+│            │  ──────────────────────────────────────────────────────────────────  │
+│            │  Role        Approvals   Agent Config   Billing   Team   Delete WS   │
+│            │──────────────────────────────────────────────────────────────────────│
+│            │  Owner       ✓           ✓              ✓         ✓      ✓          │
+│            │  Admin       ✓           ✓              ✓         ✓      —          │
+│            │  Operator    ✓           —              —         —      —          │
+│            │  Read-only   view only   —              —         —      —          │
+│            │──────────────────────────────────────────────────────────────────────│
 │────────────│                                                                      │
 │ [User /    │                                                                      │
 │  Logout]   │                                                                      │
 └────────────┴──────────────────────────────────────────────────────────────────────┘
 ```
 
-**Placement logic:** Same rail+tabs shape as Agent Configuration, but the rail here is
-*sections* rather than *agents*. Fields flow top-to-bottom in natural review order.
-Same explicit **Save changes** pattern as Agent Configuration rather than autosave,
-for consistency across both rail+tabs pages.
+**Placement logic:** New sidebar entry ("👥 Team"), sitting between Agent
+Configuration and Settings — grouped near the other admin-facing pages rather than
+up near Home/Approvals, since it's an occasional-use admin task, not daily-driver
+content. Page-local search sits directly under the page title, same convention as
+Conversations. "+ Invite member" is top-right, the primary action, same placement
+convention as other primary actions across the app. Owner is pinned first in the
+table with no role dropdown — Owner isn't a selectable role, it's a fixed status of
+who created the workspace. Pending invites show `—` for last active and a "Resend"
+action instead of prominent role editing. The role permissions legend at the bottom
+directly encodes the rule that only Owner can delete the workspace — Admin cannot.
+Transfer ownership lives in the Owner's own row's `⋮` menu, visible only to the
+current Owner, since it's their action to give up.
 
-### 7.10 Onboarding Wizard
+### 7.10 Settings
+
+**Route:** `/settings`
+
+**Pattern:** rail (sections) + tabs, same shape as Agent Configuration — consistent
+visual language, different content axis (sections instead of agents).
+
+**Rail:** Profile, Notifications, Billing, Integrations. *(Team & Roles lives on its
+own sidebar page — Section 7.9 — rather than as a tab here.)*
+
+**Sections:**
+1. **Profile** — avatar (with change photo), name, email, password change,
+   timezone/locale, log out action, and a workspace-deletion action at the bottom
+   (plain divided section, not a callout — destructive but not alarm-styled). Visible
+   only to the Owner, per the Team & Roles permissions (Section 7.9) — Admins cannot
+   delete the workspace. Default/first tab (least consequential, safest landing spot).
+
+   **Deletion sequence:**
+   1. Owner clicks "Delete workspace" — opens a modal listing what will be lost
+      (data, agents, config, billing cancellation) and flags any active state
+      (pending approvals, active subscription).
+   2. **Password re-entry** to confirm (single confirmation step — no separate
+      type-to-confirm field).
+   3. Workspace is marked for deletion with a **24–48hr grace period** — restorable
+      by the Owner logging back in and cancelling the deletion within that window.
+   4. Confirmation email sent to the Owner; Owner is logged out immediately.
+   5. Other members (Admin/Operator/Read-only) are **not notified in advance** — if
+      they try to log in during the grace period, they see a message that the
+      workspace has been scheduled for deletion by the Owner, instead of the normal
+      dashboard.
+   6. Permanent deletion runs via a background job once the grace period lapses (or
+      immediately if the Owner cancels — the workspace and all member access is
+      restored to normal).
+2. **Notifications** — connected channels (list view: channel, destination, status,
+   actions) and available channels to connect (list view), plus webhook URL and
+   per-event toggles for which events trigger a notification (new escalation, SLA
+   breach, approval expired, guardrail block).
+3. **Billing** — current plan + usage, payment methods (card, PayPal, M-Pesa, bank
+   transfer for enterprise), billing address/VAT, promo code, and invoice history
+   with downloadable PDFs.
+4. **Integrations** — connected connectors (list view: connector, status, last sync,
+   actions) and available premade connectors to browse/search (list view, grouped by
+   category, e.g. E-commerce, Support/CRM) — this is the customer-facing catalog of
+   the MCP adapters built for the product — plus a separate "Add custom connector"
+   option for backends without a premade adapter. Same underlying data the
+   Onboarding Wizard sets up initially, just the ongoing management view.
+
+**Layout (Profile):**
+
+```
+┌──────────────┐  Profile
+│ Profile   ◄──┼─ (selected)
+│ Notifications│  ──────────────────────────────────────────────────
+│ Billing      │
+│ Integrations │   ┌────────┐
+└──────────────┘   │ [Avatar]│  Change photo
+                    └────────┘
+
+                    Name          [ Gigito                    ]
+                    Email         [ gigito@example.com        ]
+                    Password      [ Change password → ]
+                    Timezone      [ Africa/Nairobi         ▾]
+
+                                            [ Save changes ]
+
+                    ──────────────────────────────────────────────
+                    [ Log out ]
+
+                    ──────────────────────────────────────────────
+                    Deleting your workspace is permanent and cannot
+                    be undone after the 48hr grace period. All
+                    workspace data will be removed. (Owner only)
+
+                    [ Delete workspace ]  (red, opens confirm modal)
+```
+
+**Layout (Billing):**
+
+```
+┌──────────────┐  Billing
+│ Profile      │  ──────────────────────────────────────────────────
+│ Notifications│
+│ Billing   ◄──┼─ (selected)   Current Plan: Pro — $49/mo
+│ Integrations │                Usage: 1,204 / 5,000 conversations
+└──────────────┘                [ Upgrade plan ]  [ Cancel plan ]
+
+                    Payment Method
+                    ● Card ending 4417        [ Edit ]
+                    ○ Add PayPal
+                    ○ Add M-Pesa
+                    ○ Add bank transfer (enterprise)
+
+                    Billing Details
+                    Billing address  [ .......................... ]
+                    Tax ID / VAT     [ .......................... ]
+                    Promo code       [ ...................... ] [Apply]
+
+                    Invoice History
+                    ──────────────────────────────────────────────
+                    Sep 2026   $49.00   Paid    [ Download PDF ]
+                    Aug 2026   $49.00   Paid    [ Download PDF ]
+                    Jul 2026   $49.00   Paid    [ Download PDF ]
+```
+
+**Layout (Integrations):**
+
+```
+┌──────────────┐  Integrations
+│ Profile      │  ──────────────────────────────────────────────────
+│ Notifications│
+│ Billing      │  My Connectors
+│ Integrations │──────────────────────────────────────────────────────
+└──────────────┘  Connector      Status        Last Sync    Actions
+                  ──────────────────────────────────────────────────
+                  🛍 Shopify      ● Connected   5m ago       Manage
+                  ──────────────────────────────────────────────────
+                  🏢 Custom       ● Connected   2h ago       Manage
+                  (in-house)
+                  ──────────────────────────────────────────────────
+
+                  Available Connectors
+                  [🔍 Search connectors...]
+                  ──────────────────────────────────────────────────
+                  Connector          Category      Action
+                  ──────────────────────────────────────────────────
+                  WooCommerce        E-commerce    [ Connect ]
+                  ──────────────────────────────────────────────────
+                  Magento            E-commerce    [ Connect ]
+                  ──────────────────────────────────────────────────
+                  BigCommerce        E-commerce    [ Connect ]
+                  ──────────────────────────────────────────────────
+                  Wix                E-commerce    [ Connect ]
+                  ──────────────────────────────────────────────────
+                  Zendesk            Support/CRM   [ Connect ]
+                  ──────────────────────────────────────────────────
+                  Salesforce         Support/CRM   [ Connect ]
+                  ──────────────────────────────────────────────────
+
+                  Don't see your platform?
+                  [ + Add custom connector ]
+```
+
+**Layout (Notifications):**
+
+```
+┌──────────────┐  Notifications
+│ Profile      │  ──────────────────────────────────────────────────
+│ Notifications◄┼─ (selected)
+│ Billing      │  Connected Channels
+│ Integrations │──────────────────────────────────────────────────────
+└──────────────┘  Channel       Destination            Status      Actions
+                  ──────────────────────────────────────────────────
+                  💬 Slack       #support-alerts        ● Connected  Manage
+                  ──────────────────────────────────────────────────
+                  ✉️ Email       ops@yourco.com          ● Connected  Manage
+                  ──────────────────────────────────────────────────
+
+                  Available Channels
+                  ──────────────────────────────────────────────────
+                  Channel            Action
+                  ──────────────────────────────────────────────────
+                  Microsoft Teams    [ Connect ]
+                  ──────────────────────────────────────────────────
+                  Discord            [ Connect ]
+                  ──────────────────────────────────────────────────
+                  WhatsApp           [ Connect ]
+                  ──────────────────────────────────────────────────
+                  Telegram           [ Connect ]
+                  ──────────────────────────────────────────────────
+
+                  ──────────────────────────────────────────────
+                  Webhook
+                  URL   [ .......................................... ]
+
+                  Notify me when:
+                  ☑ New escalation        ☑ SLA breach
+                  ☑ Approval expired      ☐ Guardrail block
+
+                  [ Save changes ]
+```
+
+**Placement logic:** Same rail+tabs shape as Agent Configuration, but the rail here is
+*sections* rather than *agents*. **Profile** leads with the avatar (most visually
+identifying element), keeps the existing field order, then Log Out as a clear
+secondary action below Save Changes, and workspace deletion as its own divided
+section at the very bottom — separated from routine actions but not styled as an
+alarm, gated to the Owner role, and requiring password re-entry plus a 24–48hr grace
+period since it's irreversible after that window (full sequence above). **Billing**
+puts plan/usage up top for an at-a-glance read, payment methods as selectable options
+rather than a single field (a buyer may add more than one over time), and invoice
+history as a scrollable table since that's what accounting teams return to
+repeatedly. **Integrations** and **Notifications** share a "connected / available"
+list pattern instead of cards — thin table rows (matching the Knowledge Base file
+list) scale to dozens of premade connectors/channels without turning into a wall of
+boxes; a search bar and category column help users scan the larger Available
+Connectors list, while the shorter Available Channels list doesn't need one. Webhook
+and event toggles stay their own section beneath the channel lists.
+
+### 7.11 Onboarding Wizard
 
 **Route:** `/onboarding` (one-time flow, run right after signup; not a persistent
 sidebar destination)
@@ -825,7 +1059,7 @@ Next/Finish (right, primary). Step 6 replaces "Next" with "Go to Dashboard" and 
   style across dense UI (status badges, nav, tables), tree-shakeable imports, and
   broad coverage of the small functional icons this app needs throughout.
 
-**Supporting (needed to build the 9 designed pages):**
+**Supporting (needed to build the 10 designed pages):**
 - **shadcn/ui** — component primitives (dropdowns, dialogs/modals, tabs, toasts)
   built on Radix + Tailwind, owned/customizable directly rather than a black-box
   library. Pairs natively with Lucide.
@@ -897,11 +1131,14 @@ reusable component set includes:
   filter tabs) — shared between Approvals and Conversations
 - **Rail + Tabs template** components (rail item, tab bar) — shared between Agent
   Configuration and Settings
-- **Status badge** (risk level, ingestion status, conversation status) — one
-  component, color/label driven by props, used across Approvals, Conversations, and
-  Knowledge Base
+- **Status badge** (risk level, ingestion status, conversation status, connector/
+  channel status) — one component, color/label driven by props, used across
+  Approvals, Conversations, Knowledge Base, Team & Roles, and Settings
 - **Metric card** — shared between the Homepage snapshot and the Agent Stats
   Dashboard headline cards
+- **Data table / list row** — thin table-style rows with an actions column, shared
+  across Knowledge Base, Conversations, Team & Roles, and the Settings
+  Integrations/Notifications lists
 - **Empty state** — shared shape across Approvals, Conversations, Knowledge Base
 - **Form field / Save changes footer** — shared across Agent Configuration, Settings,
   and the Onboarding Wizard steps
@@ -936,6 +1173,8 @@ frontend/
 │   │   ├── agent-stats/
 │   │   │   └── page.tsx
 │   │   ├── agent-config/
+│   │   │   └── page.tsx
+│   │   ├── team/
 │   │   │   └── page.tsx
 │   │   └── settings/
 │   │       └── page.tsx
@@ -973,6 +1212,7 @@ frontend/
 │   ├── knowledge-base/
 │   ├── agent-stats/
 │   ├── agent-config/
+│   ├── team/
 │   └── settings/
 │
 ├── lib/

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Search, Sun, Moon } from "lucide-react";
 import { useTheme } from "./theme-provider";
 import NotificationsCenter from "./notifications-center";
@@ -40,12 +41,14 @@ export default function TopBar() {
         <NotificationsCenter />
 
         {/* Avatar */}
-        <button
-          id="account-avatar"
-          className="w-7 h-7 rounded-full bg-[var(--color-gray-300)] dark:bg-[var(--color-gray-700)] flex items-center justify-center text-xs font-medium text-[var(--fg-base)]"
-        >
-          A
-        </button>
+        <Link href="/settings">
+          <button
+            id="account-avatar"
+            className="w-7 h-7 rounded-full bg-[var(--color-gray-300)] dark:bg-[var(--color-gray-700)] flex items-center justify-center text-xs font-medium text-[var(--fg-base)] hover:opacity-80 transition-opacity cursor-pointer"
+          >
+            A
+          </button>
+        </Link>
       </div>
     </header>
   );

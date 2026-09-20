@@ -70,18 +70,74 @@ The application is structured into domain-specific features and generic reusable
 ```text
 frontend/
 ├── app/
-│   ├── (auth)/                # Unauthenticated routes (login, signup)
-│   ├── (dashboard)/           # Authenticated routes (shares the app shell layout)
-│   └── onboarding/            # One-time wizard layout
+│   ├── (auth)/                    # unauthenticated routes, no sidebar shell
+│   │   ├── login/
+│   │   │   └── page.tsx
+│   │   └── signup/
+│   │       └── page.tsx
+│   ├── onboarding/
+│   │   └── page.tsx               # multi-step wizard, own layout (no sidebar)
+│   ├── (dashboard)/               # authenticated routes, shares the app shell
+│   │   ├── layout.tsx             # sidebar + top bar
+│   │   ├── page.tsx               # Homepage "/"
+│   │   ├── approvals/
+│   │   │   └── page.tsx
+│   │   ├── conversations/
+│   │   │   └── page.tsx
+│   │   ├── knowledge-base/
+│   │   │   └── page.tsx
+│   │   ├── agent-stats/
+│   │   │   └── page.tsx
+│   │   ├── agent-config/
+│   │   │   └── page.tsx
+│   │   └── settings/
+│   │       └── page.tsx
+│   └── layout.tsx                 # root layout (fonts, providers)
+│
 ├── components/
-│   ├── ui/                    # shadcn primitives
-│   ├── shared/                # Reusable elements (status badges, metric cards)
-│   ├── templates/             # Reusable page templates (list-detail, rail-tabs)
-│   └── shell/                 # Application shell (sidebar, topbar)
-├── features/                  # Domain-specific modules (approvals, stats, etc.)
-├── lib/                       # API clients and utilities
-├── hooks/                     # Custom React hooks
-└── types/                     # Shared TypeScript types
+│   ├── ui/                        # shadcn primitives (button, input, dialog, tabs...)
+│   ├── shared/                    # reusable pieces
+│   │   ├── status-badge.tsx
+│   │   ├── metric-card.tsx
+│   │   ├── empty-state.tsx
+│   │   ├── save-changes-footer.tsx
+│   │   └── sla-countdown.tsx
+│   ├── templates/                 # the two repeating page templates
+│   │   ├── list-detail/
+│   │   │   ├── list-detail-layout.tsx
+│   │   │   ├── list-pane.tsx
+│   │   │   └── detail-panel.tsx   # or slide-over variant
+│   │   └── rail-tabs/
+│   │       ├── rail-tabs-layout.tsx
+│   │       ├── rail.tsx
+│   │       └── tab-bar.tsx
+│   └── shell/                     # app shell pieces
+│       ├── sidebar.tsx
+│       ├── top-bar.tsx
+│       ├── workspace-switcher.tsx
+│       └── notifications-center.tsx
+│
+├── features/                      # page-specific logic/components, grouped by domain
+│   ├── approvals/
+│   │   ├── approval-row.tsx
+│   │   ├── approval-detail.tsx
+│   │   └── use-approvals.ts       # TanStack Query hooks
+│   ├── conversations/
+│   ├── knowledge-base/
+│   ├── agent-stats/
+│   ├── agent-config/
+│   └── settings/
+│
+├── lib/
+│   ├── api-client.ts              # FastAPI client setup
+│   ├── query-client.ts            # TanStack Query config
+│   └── utils.ts
+│
+├── hooks/
+│   └── use-websocket.ts           # real-time approvals updates
+│
+└── types/
+    └── (shared TS types/interfaces, mirroring backend Pydantic schemas)
 ```
 
 ## 📖 Additional Documentation
