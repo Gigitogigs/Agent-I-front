@@ -32,6 +32,7 @@ export function UploadZone() {
           id="kb-file-upload"
           type="file"
           multiple
+          accept=".pdf, .doc, .docx, .csv, .xlsx, .xls, .txt, .md, application/pdf, application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document, text/csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel, text/plain, text/markdown"
           className="hidden"
           onChange={(e) => {
             // Stub: handle file selection via dialog
@@ -45,7 +46,7 @@ export function UploadZone() {
           Drag & drop files here, or click to browse
         </p>
         <p className="text-xs text-[var(--fg-muted)] mt-1">
-          (Multiple files supported. PDFs, Markdown, Word docs, etc.)
+          (Multiple files supported: PDF, DOC(X), CSV, XLS(X), TXT, MD)
         </p>
       </label>
 
