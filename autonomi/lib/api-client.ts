@@ -71,7 +71,7 @@ axiosInstance.interceptors.response.use(
       console.log("[apiClient] Starting refresh process");
 
       try {
-        const { data } = await axios.post<{access_token: string, expires_in: number}>(`${BASE_URL}/auth/refresh`, {}, { withCredentials: true });
+        const { data } = await axios.post<{access_token: string, expires_in: number}>(`${BASE_URL}/auth/refresh`, undefined, { withCredentials: true });
         console.log("[apiClient] Refresh success");
         axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${data.access_token}`;
         tokenStore.set(data.access_token, data.expires_in);
