@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/shell/theme-provider";
 import { Providers } from "@/lib/providers";
+import Script from "next/script";
 import "./globals.css";
 
 const inter = Inter({
@@ -24,7 +25,9 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} h-full`} suppressHydrationWarning>
       <head>
         {/* Anti-flash: read localStorage before React hydrates and apply the class */}
-        <script
+        <Script
+          id="theme-script"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: `
               (function() {

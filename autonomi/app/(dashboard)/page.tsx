@@ -8,9 +8,9 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { useHomepageSummary } from "@/hooks/use-homepage-summary";
 
 export default function HomePage() {
-  const { data: summary, isLoading, error } = useHomepageSummary();
+  const { data: summary, isPending, error } = useHomepageSummary();
 
-  if (isLoading) {
+  if (isPending) {
     return (
       <div className="flex items-center justify-center h-full">
         <Loader2 className="animate-spin text-[var(--fg-muted)]" size={24} />
