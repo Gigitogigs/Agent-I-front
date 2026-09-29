@@ -1,145 +1,90 @@
 # Agent-I Frontend
 
-Agent-I is a SaaS-facing frontend designed for business administrators and operators to manage their multi-agent support systems. This platform provides full control over approvals, agent configurations, knowledge base ingestion, conversation monitoring, and analytics.
+Agent-I is a SaaS-facing admin dashboard for business operators managing a multi-agent customer support system. It provides real-time HITL approval queues, conversation monitoring, knowledge base management, agent configuration, and workspace analytics.
 
-This project is built using Next.js and interfaces with a backend orchestrator powered by LangGraph, Postgres/pgvector, and Langfuse.
+## Getting Started
 
-## 🚀 Getting Started
-
-First, install dependencies:
+Install dependencies:
 
 ```bash
 npm install
-# or
-yarn install
-# or
-pnpm install
 ```
 
-Run the development server:
+Run the development server (defaults to `http://localhost:3000`):
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The backend API must be running separately. Set the base URL via the `NEXT_PUBLIC_API_URL` environment variable (defaults to `http://localhost:8000`).
 
-## 🛠️ Tech Stack
+## Tech Stack
 
-- **Core Framework:** Next.js (App Router)
-- **Styling:** Tailwind CSS
-- **Icons:** Lucide (`lucide-react`)
-- **Components:** shadcn/ui (Radix + Tailwind)
-- **State Management & Data Fetching:** TanStack Query (React Query)
-- **Form Handling:** React Hook Form + Zod
-- **Charts:** Recharts
+| Layer | Library |
+|---|---|
+| Framework | Next.js 16 (App Router) |
+| Styling | Vanilla CSS (custom design tokens via CSS variables) |
+| Icons | Lucide React |
+| Server State | TanStack Query v5 |
+| HTTP Client | Axios (via `lib/api-client.ts`) |
+| Charts | Recharts |
 
-## 💡 Key Features
+## Authentication
 
-The frontend architecture consolidates complex operational features into 9 core mental models/pages:
+Auth is custom-built — **`next-auth` is not used**.
 
-1. **Homepage:** A quick-glance summary of pending approvals, agent stats, system health, and recent escalations.
-2. **Onboarding Wizard:** Guided, multi-step flow for connecting backends, choosing global models, and setting up the knowledge base.
-3. **Approvals:** "Inbox-style" management of Human-in-the-Loop (HITL) queues with integrated risk badges, SLA timers, and full conversation context.
-4. **Conversations:** High-volume, slide-over transcript viewer with inline retrieval citations and approval outcomes.
-5. **Knowledge Base:** Drag-and-drop document upload and management, along with an integrated retrieval testing tool.
-6. **Agent Stats Dashboard:** Granular Langfuse-backed metrics for resolution rates, latency, guardrail blocks, and fallback rates.
-7. **Agent Configuration:** A modular rail+tabs interface for managing LLM models, API keys, prompt overrides, guardrails, and HITL policies per agent (Orchestrator, Retrieval, Action, Escalation).
-8. **Settings:** Workspace management, user profile, notifications, and ongoing integration setups.
-9. **Authentication:** Secure login and signup flows for operators.
+- Login issues a short-lived **Bearer access token** (stored in `sessionStorage`) and an HttpOnly **refresh token cookie** (managed by the browser).
+- `lib/api-client.ts` injects the Bearer token on every request and silently rotates it via `/auth/refresh` on 401.
+- `middleware.ts` protects all `/(dashboard)/*` routes by checking for the presence of the `refresh_token` cookie. Unauthenticated requests are redirected to `/login`.
 
-## 🏗️ Architecture & Design
+## Key Features
 
-### Visual Design System
-The UI adheres to a strict "Swiss design" aesthetic:
-- **Typography:** Inter font family.
-- **Layout:** Grid-based with sharp corners on structural elements (panels, sidebar) and softened touchpoints (buttons, inputs).
-- **Color Palette:** Strictly black, white, and gray. Color is reserved *exclusively* for semantic status badges (Green = Ready/Approved, Amber = Pending/Processing, Red = Failed/Rejected).
+1. **Homepage** — Quick-glance metrics: pending approvals, agent stats, system health.
+2. **Approvals** — Inbox-style HITL queue with risk badges, SLA countdowns, and approve/reject with mandatory reason.
+3. **Conversations** — Searchable transcript viewer with inline retrieval citations.
+4. **Knowledge Base** — Document upload/management with retrieval testing.
+5. **Agent Stats** — Langfuse-backed resolution rate, latency, guardrail block, and fallback metrics.
+6. **Agent Configuration** — Per-agent LLM model selection, API key management, prompt overrides, and HITL policies.
+7. **Team & Roles** — Member invite, role assignment (owner/admin/operator).
+8. **Settings** — Profile, workspace management, account deletion.
+9. **Workspace Switcher** — Multi-workspace support; active workspace persisted in `localStorage`.
 
-### Component Architecture
-The application is structured into domain-specific features and generic reusable components based on two primary page templates:
-- **List + Detail Template:** Used for *Approvals* and *Conversations* (inbox patterns).
-- **Rail + Tabs Template:** Used for *Agent Configuration* and *Settings*.
+## Design System
 
-### File Structure
+Custom CSS variables in `app/globals.css` drive all theming:
+- `--bg-*` / `--fg-*` for backgrounds and foregrounds.
+- `--border-hairline` for structural borders.
+- `--color-danger` / `--color-warn` / `--color-ok` for semantic status.
+- Sharp corners on structural chrome (sidebar, panels); softened corners on interactive elements (buttons, inputs).
+
+## Architecture
 
 ```text
-frontend/
+autonomi/
 ├── app/
-│   ├── (auth)/                    # unauthenticated routes, no sidebar shell
-│   │   ├── login/
-│   │   │   └── page.tsx
-│   │   └── signup/
-│   │       └── page.tsx
-│   ├── onboarding/
-│   │   └── page.tsx               # multi-step wizard, own layout (no sidebar)
-│   ├── (dashboard)/               # authenticated routes, shares the app shell
-│   │   ├── layout.tsx             # sidebar + top bar
-│   │   ├── page.tsx               # Homepage "/"
-│   │   ├── approvals/
-│   │   │   └── page.tsx
-│   │   ├── conversations/
-│   │   │   └── page.tsx
-│   │   ├── knowledge-base/
-│   │   │   └── page.tsx
-│   │   ├── agent-stats/
-│   │   │   └── page.tsx
-│   │   ├── agent-config/
-│   │   │   └── page.tsx
-│   │   └── settings/
-│   │       └── page.tsx
-│   └── layout.tsx                 # root layout (fonts, providers)
+│   ├── (auth)/             # Login/signup — no sidebar
+│   ├── (dashboard)/        # All authenticated routes — shares AppShell
+│   └── layout.tsx          # Root layout: fonts, QueryClient, providers
 │
 ├── components/
-│   ├── ui/                        # shadcn primitives (button, input, dialog, tabs...)
-│   ├── shared/                    # reusable pieces
-│   │   ├── status-badge.tsx
-│   │   ├── metric-card.tsx
-│   │   ├── empty-state.tsx
-│   │   ├── save-changes-footer.tsx
-│   │   └── sla-countdown.tsx
-│   ├── templates/                 # the two repeating page templates
-│   │   ├── list-detail/
-│   │   │   ├── list-detail-layout.tsx
-│   │   │   ├── list-pane.tsx
-│   │   │   └── detail-panel.tsx   # or slide-over variant
-│   │   └── rail-tabs/
-│   │       ├── rail-tabs-layout.tsx
-│   │       ├── rail.tsx
-│   │       └── tab-bar.tsx
-│   └── shell/                     # app shell pieces
-│       ├── sidebar.tsx
-│       ├── top-bar.tsx
-│       ├── workspace-switcher.tsx
-│       └── notifications-center.tsx
+│   ├── shell/              # Sidebar, TopBar, WorkspaceSwitcher
+│   └── shared/             # StatusBadge, MetricCard, SlaCountdown, SaveChangesFooter
 │
-├── features/                      # page-specific logic/components, grouped by domain
+├── features/               # Domain-scoped components + hooks
 │   ├── approvals/
-│   │   ├── approval-row.tsx
-│   │   ├── approval-detail.tsx
-│   │   └── use-approvals.ts       # TanStack Query hooks
+│   ├── agent-config/
 │   ├── conversations/
 │   ├── knowledge-base/
-│   ├── agent-stats/
-│   ├── agent-config/
-│   └── settings/
+│   ├── settings/
+│   └── stats/
 │
-├── lib/
-│   ├── api-client.ts              # FastAPI client setup
-│   ├── query-client.ts            # TanStack Query config
-│   └── utils.ts
-│
-├── hooks/
-│   └── use-websocket.ts           # real-time approvals updates
-│
-└── types/
-    └── (shared TS types/interfaces, mirroring backend Pydantic schemas)
+├── hooks/                  # use-auth.ts, use-websocket.ts, use-homepage-summary.ts
+├── lib/                    # api-client.ts, token-store.ts, providers.tsx, utils.ts
+├── middleware.ts            # Route protection
+└── types/                  # Shared TS types mirroring backend Pydantic schemas
 ```
 
-## 📖 Additional Documentation
+## Additional Documentation
 
-For a detailed breakdown of the internal frontend specifications, design decisions, and component breakdown, please refer to the internal [`Frontend-Architecture.md`](./Frontend-Architecture.md) documentation.
+- [`Frontend-Architecture.md`](./Frontend-Architecture.md) — Full design spec and component decisions.
+- Backend API source: `../Agent-I/backend/` (FastAPI + SQLAlchemy + Redis).

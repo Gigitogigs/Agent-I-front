@@ -21,12 +21,23 @@ export function SlaCountdown({ expiresAt, className }: SlaCountdownProps) {
   }, [expiresAt]);
 
   useEffect(() => {
-    if (!mounted || secondsLeft <= 0) return;
+    if (!mounted) return;
+
+    const expiryMs = new Date(expiresAt).getTime();
+
+    if (expiryMs <= Date.now()) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSecondsLeft(0);
+      return;
+    }
+
     const timer = setInterval(() => {
-      setSecondsLeft((s) => Math.max(0, s - 1));
+      const remaining = Math.max(0, Math.floor((expiryMs - Date.now()) / 1000));
+      setSecondsLeft(remaining);
+      if (remaining === 0) clearInterval(timer);
     }, 1000);
     return () => clearInterval(timer);
-  }, [mounted, secondsLeft]);
+  }, [mounted, expiresAt]);
 
   const urgencyClass =
     !mounted

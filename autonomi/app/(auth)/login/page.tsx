@@ -1,20 +1,54 @@
-import type { Metadata } from "next";
-import Link from "next/link";
+"use client";
 
-export const metadata: Metadata = {
-  title: "Log in — Autonomi",
-  description: "Log in to your Autonomi workspace",
-};
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiClient, axiosInstance } from "@/lib/api-client";
+import { tokenStore } from "@/lib/token-store";
+
+interface LoginResponse {
+  user: { id: string; name: string; email: string; avatarUrl?: string };
+  activeWorkspaceId: string | null;
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+}
 
 export default function LoginPage() {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const loginMutation = useMutation({
+    mutationFn: async () => {
+      return apiClient.post<LoginResponse>("/auth/login", { email, password });
+    },
+    onSuccess: (data: LoginResponse) => {
+      tokenStore.set(data.access_token, data.expires_in);
+      axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${data.access_token}`;
+      queryClient.setQueryData(['auth', 'me'], data.user);
+      router.push("/");
+    },
+    onError: (err: any) => {
+      setErrorMsg(err.response?.data?.detail || "Invalid email or password.");
+    }
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg("");
+    loginMutation.mutate();
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-[var(--bg-subtle)] px-4">
       <div className="w-full max-w-sm">
-
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2">
-            {/* Wordmark */}
             <span className="text-xl font-semibold tracking-tight text-[var(--fg-base)]">
               Autonomi
             </span>
@@ -29,7 +63,13 @@ export default function LoginPage() {
             </h1>
           </div>
 
-          <form action="#" method="POST" className="px-8 pt-5 pb-7 space-y-4">
+          <form onSubmit={handleSubmit} className="px-8 pt-5 pb-7 space-y-4">
+            {errorMsg && (
+              <div className="p-3 text-xs text-[var(--color-danger)] bg-[var(--bg-subtle)] border border-[var(--color-danger)] rounded">
+                {errorMsg}
+              </div>
+            )}
+            
             {/* Email */}
             <div className="space-y-1.5">
               <label
@@ -42,6 +82,8 @@ export default function LoginPage() {
                 id="login-email"
                 name="email"
                 type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 autoComplete="email"
                 required
                 placeholder="you@company.com"
@@ -77,6 +119,8 @@ export default function LoginPage() {
                 id="login-password"
                 name="password"
                 type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 autoComplete="current-password"
                 required
                 placeholder="••••••••"
@@ -96,14 +140,16 @@ export default function LoginPage() {
             <button
               id="login-submit"
               type="submit"
+              disabled={loginMutation.isPending}
               className="
                 w-full py-2 text-sm font-medium mt-2
                 bg-[var(--fg-base)] text-[var(--bg-surface)]
                 hover:opacity-90 active:opacity-80 transition-opacity
+                disabled:opacity-50 disabled:cursor-not-allowed
               "
               style={{ borderRadius: "var(--radius-interactive)" }}
             >
-              Log in
+              {loginMutation.isPending ? "Logging in..." : "Log in"}
             </button>
           </form>
         </div>

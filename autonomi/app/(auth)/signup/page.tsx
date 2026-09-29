@@ -3,14 +3,38 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiClient } from "@/lib/api-client";
 
 // Note: metadata export works in server components only.
 // Move to a separate layout.tsx if needed, or use generateMetadata.
 // For simplicity, page title is set in the document head via layout.
 
 export default function SignupPage() {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const signupMutation = useMutation({
+    mutationFn: async () => {
+      // API may expect full_name, passing it along with standard email/password
+      return apiClient.post("/auth/register", { full_name: name, email, password });
+    },
+    onSuccess: () => {
+      // Some systems auto-login on register, some don't.
+      // If not, we might need to call login here, but let's try pushing to home
+      // and let the Auth check route/redirect if necessary, or push to /login
+      router.push("/login");
+    },
+    onError: (err: any) => {
+      setErrorMsg(err.response?.data?.detail?.[0]?.msg || err.response?.data?.detail || "Failed to create account.");
+    }
+  });
 
   function validatePassword() {
     if (password.length > 0 && password.length < 8) {
@@ -19,6 +43,14 @@ export default function SignupPage() {
       setPasswordError("");
     }
   }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg("");
+    validatePassword();
+    if (password.length < 8) return;
+    signupMutation.mutate();
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[var(--bg-subtle)] px-4">
@@ -41,7 +73,13 @@ export default function SignupPage() {
             </h1>
           </div>
 
-          <form action="#" method="POST" className="px-8 pt-5 pb-7 space-y-4">
+          <form onSubmit={handleSubmit} className="px-8 pt-5 pb-7 space-y-4">
+            
+            {errorMsg && (
+              <div className="p-3 text-xs text-[var(--color-danger)] bg-[var(--bg-subtle)] border border-[var(--color-danger)] rounded">
+                {errorMsg}
+              </div>
+            )}
 
             {/* Name */}
             <div className="space-y-1.5">
@@ -55,6 +93,8 @@ export default function SignupPage() {
                 id="signup-name"
                 name="name"
                 type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
                 autoComplete="name"
                 required
                 placeholder="Jane Smith"
@@ -82,6 +122,8 @@ export default function SignupPage() {
                 id="signup-email"
                 name="email"
                 type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 autoComplete="email"
                 required
                 placeholder="you@company.com"
@@ -139,14 +181,16 @@ export default function SignupPage() {
             <button
               id="signup-submit"
               type="submit"
+              disabled={signupMutation.isPending}
               className="
                 w-full py-2 text-sm font-medium mt-2
                 bg-[var(--fg-base)] text-[var(--bg-surface)]
                 hover:opacity-90 active:opacity-80 transition-opacity
+                disabled:opacity-50 disabled:cursor-not-allowed
               "
               style={{ borderRadius: "var(--radius-interactive)" }}
             >
-              Create account
+              {signupMutation.isPending ? "Creating account..." : "Create account"}
             </button>
           </form>
         </div>

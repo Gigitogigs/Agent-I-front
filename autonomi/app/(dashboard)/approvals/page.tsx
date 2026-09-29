@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import type { Metadata } from "next";
-import { CheckCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { CheckCircle, Loader2 } from "lucide-react";
 
 import { ListDetailLayout } from "@/components/templates/list-detail/list-detail-layout";
 import { ListPane } from "@/components/templates/list-detail/list-pane";
@@ -11,41 +10,37 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { ApprovalRow } from "@/features/approvals/approval-row";
 import { ApprovalDetail } from "@/features/approvals/approval-detail";
 import {
-  STUB_APPROVALS,
   STATUS_TABS,
-  filterApprovals,
+  useApprovals,
+  useApproveAction,
+  useRejectAction,
 } from "@/features/approvals/use-approvals";
-import type { Approval, ApprovalStatus } from "@/types";
+import type { ApprovalStatus } from "@/types";
 import { cn } from "@/lib/utils";
 
 export default function ApprovalsPage() {
-  const [approvals, setApprovals] = useState<Approval[]>(STUB_APPROVALS);
   const [activeTab, setActiveTab] = useState<ApprovalStatus | "ALL">("PENDING");
-  const [selectedId, setSelectedId] = useState<string | null>(
-    STUB_APPROVALS.find((a) => a.status === "PENDING")?.id ?? null
-  );
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const visible = filterApprovals(approvals, activeTab);
+  const { data: approvals = [], isLoading, error } = useApprovals(activeTab);
+  const approveMutation = useApproveAction();
+  const rejectMutation = useRejectAction();
+
+  // Auto-select first item when data loads and nothing is selected
+  useEffect(() => {
+    if (approvals.length > 0 && !selectedId && !isLoading) {
+      setSelectedId(approvals[0].id);
+    }
+  }, [approvals, selectedId, isLoading]);
+
   const selected = approvals.find((a) => a.id === selectedId) ?? null;
 
   function handleApprove(id: string) {
-    setApprovals((prev) =>
-      prev.map((a) =>
-        a.id === id
-          ? { ...a, status: "APPROVED", resolvedAt: new Date().toISOString(), resolvedBy: "admin@autonomi.ai" }
-          : a
-      )
-    );
+    approveMutation.mutate(id);
   }
 
-  function handleReject(id: string, reason: string) {
-    setApprovals((prev) =>
-      prev.map((a) =>
-        a.id === id
-          ? { ...a, status: "REJECTED", resolvedAt: new Date().toISOString(), resolvedBy: "admin@autonomi.ai", rejectReason: reason }
-          : a
-      )
-    );
+  async function handleReject(id: string, reason: string): Promise<void> {
+    await rejectMutation.mutateAsync({ approvalId: id, reason });
   }
 
   return (
@@ -57,10 +52,6 @@ export default function ApprovalsPage() {
         {/* Status filter tabs */}
         <nav className="flex" role="tablist">
           {STATUS_TABS.map((tab) => {
-            const count =
-              tab.id === "ALL"
-                ? approvals.length
-                : approvals.filter((a) => a.status === tab.id).length;
             const active = activeTab === tab.id;
             return (
               <button
@@ -69,9 +60,7 @@ export default function ApprovalsPage() {
                 aria-selected={active}
                 onClick={() => {
                   setActiveTab(tab.id);
-                  // Auto-select first item in new tab
-                  const first = filterApprovals(approvals, tab.id)[0];
-                  setSelectedId(first?.id ?? null);
+                  setSelectedId(null); // Reset selection on tab change
                 }}
                 className={cn(
                   "flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium border-b-2 transition-colors",
@@ -81,18 +70,6 @@ export default function ApprovalsPage() {
                 )}
               >
                 {tab.label}
-                {count > 0 && (
-                  <span
-                    className={cn(
-                      "text-[10px] px-1 py-0.5 rounded-sm tabular-nums",
-                      active
-                        ? "bg-[var(--fg-base)] text-[var(--bg-surface)]"
-                        : "bg-[var(--bg-muted)] text-[var(--fg-muted)]"
-                    )}
-                  >
-                    {count}
-                  </span>
-                )}
               </button>
             );
           })}
@@ -104,7 +81,15 @@ export default function ApprovalsPage() {
         <ListDetailLayout
           listPane={
             <ListPane>
-              {visible.length === 0 ? (
+              {isLoading ? (
+                <div className="flex items-center justify-center p-8">
+                  <Loader2 className="animate-spin text-[var(--fg-muted)]" size={20} />
+                </div>
+              ) : error ? (
+                <div className="p-4 text-sm text-[var(--color-danger)] text-center">
+                  Failed to load approvals.
+                </div>
+              ) : approvals.length === 0 ? (
                 <EmptyState
                   icon={CheckCircle}
                   title={
@@ -119,7 +104,7 @@ export default function ApprovalsPage() {
                   }
                 />
               ) : (
-                visible.map((a) => (
+                approvals.map((a) => (
                   <ApprovalRow
                     key={a.id}
                     approval={a}
@@ -137,6 +122,8 @@ export default function ApprovalsPage() {
                 approval={selected}
                 onApprove={handleApprove}
                 onReject={handleReject}
+                isApprovePending={approveMutation.isPending}
+                isRejectPending={rejectMutation.isPending}
               />
             ) : (
               <div className="flex items-center justify-center h-full">

@@ -8,9 +8,10 @@ import { formatBytes } from "./use-knowledge";
 interface DocumentRowProps {
   doc: KnowledgeDocument;
   onDelete: (id: string) => void;
+  onRetry: (id: string) => void;
 }
 
-export function DocumentRow({ doc, onDelete }: DocumentRowProps) {
+export function DocumentRow({ doc, onDelete, onRetry }: DocumentRowProps) {
   const isReady = doc.status === "READY";
   const isProcessing = doc.status === "PROCESSING";
   const isFailed = doc.status === "FAILED";
@@ -28,8 +29,8 @@ export function DocumentRow({ doc, onDelete }: DocumentRowProps) {
         {/* Name */}
         <div className="w-48 shrink-0 flex items-center gap-2">
           <FileText size={14} className="text-[var(--fg-subtle)] shrink-0" />
-          <span className="text-sm font-medium text-[var(--fg-base)] truncate" title={doc.name}>
-            {doc.name}
+          <span className="text-sm font-medium text-[var(--fg-base)] truncate" title={doc.filename}>
+            {doc.filename}
           </span>
         </div>
 
@@ -46,33 +47,33 @@ export function DocumentRow({ doc, onDelete }: DocumentRowProps) {
 
         {/* Tags */}
         <div className="flex-1 min-w-0 flex gap-1.5 items-center">
-          {doc.tags.map(tag => (
-            <span key={tag} className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--bg-subtle)] text-[var(--fg-muted)] border border-[var(--border-hairline)]">
-              {tag}
+          {doc.tags && Object.entries(doc.tags).map(([k, v]) => (
+            <span key={k} className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--bg-subtle)] text-[var(--fg-muted)] border border-[var(--border-hairline)]">
+              {k}: {v}
             </span>
           ))}
         </div>
 
         {/* Size */}
         <div className="w-16 shrink-0 text-right text-xs text-[var(--fg-muted)] tabular-nums">
-          {formatBytes(doc.sizeBytes)}
+          {formatBytes(doc.file_size_bytes)}
         </div>
 
         {/* Chunks */}
         <div className="w-16 shrink-0 text-right text-xs text-[var(--fg-muted)] tabular-nums">
-          {doc.chunks ?? "—"}
+          {doc.chunk_count ?? "—"}
         </div>
 
         {/* Date */}
         <div className="w-20 shrink-0 text-right text-xs text-[var(--fg-muted)] tabular-nums">
-          {relativeTime(doc.uploadedAt)}
+          {relativeTime(doc.created_at)}
         </div>
 
         {/* Delete */}
         <div className="w-8 shrink-0 flex justify-end">
           <button 
             onClick={() => {
-              if (window.confirm(`Are you sure you want to delete ${doc.name}? It will be removed from retrieval immediately.`)) {
+              if (window.confirm(`Are you sure you want to delete ${doc.filename}? It will be removed from retrieval immediately.`)) {
                 onDelete(doc.id);
               }
             }}
@@ -89,10 +90,10 @@ export function DocumentRow({ doc, onDelete }: DocumentRowProps) {
         <div className="px-4 pb-3 pl-[3.25rem] flex items-center gap-2 text-xs">
           <AlertCircle size={12} className="text-[var(--color-warning)]" />
           <span className="text-[var(--color-warning)]">
-            {doc.errorReason || "Processing failed"}
+            {doc.error_message || "Processing failed"}
           </span>
           <span className="text-[var(--fg-subtle)] mx-1">•</span>
-          <button className="text-[var(--fg-base)] font-medium hover:underline flex items-center gap-1">
+          <button onClick={() => onRetry(doc.id)} className="text-[var(--fg-base)] font-medium hover:underline flex items-center gap-1">
             <RefreshCw size={10} /> Retry
           </button>
         </div>

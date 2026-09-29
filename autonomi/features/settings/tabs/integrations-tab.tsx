@@ -1,13 +1,48 @@
-import { Store, Workflow, Plus, Search } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import { Store, Workflow, Plus, Search, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { ConnectedIntegration, AvailableIntegration } from "../use-settings";
+import { useIntegrations, useAddIntegration } from "../use-settings";
 
-interface IntegrationsTabProps {
-  connected: ConnectedIntegration[];
-  available: AvailableIntegration[];
-}
+export function IntegrationsTab() {
+  const { activeWorkspaceId, isLoading: isAuthLoading } = useAuth();
+  const { data: connected, isLoading, error } = useIntegrations();
+  const addMutation = useAddIntegration();
 
-export function IntegrationsTab({ connected, available }: IntegrationsTabProps) {
+  if (isAuthLoading) {
+    return <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-[var(--fg-muted)]" /></div>;
+  }
+
+  if (!activeWorkspaceId) {
+    return <div className="p-8 text-[var(--fg-muted)] text-center">No active workspace found.</div>;
+  }
+
+  if (isLoading) {
+    return <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-[var(--fg-muted)]" /></div>;
+  }
+  
+  if (error || !connected) {
+    return <div className="p-8 text-[var(--color-danger)] text-center">Failed to load integrations.</div>;
+  }
+
+  // Mock available integrations
+  const connectedTypes = connected.map(c => c.integration_type);
+  const allAvailable = [
+    { type: "shopify", name: "Shopify", category: "E-commerce" },
+    { type: "woocommerce", name: "WooCommerce", category: "E-commerce" },
+    { type: "magento", name: "Magento", category: "E-commerce" },
+    { type: "zendesk", name: "Zendesk", category: "Support/CRM" },
+    { type: "salesforce", name: "Salesforce", category: "Support/CRM" },
+  ];
+  const available = allAvailable.filter(a => !connectedTypes.includes(a.type));
+
+  const handleAdd = (type: string, name: string) => {
+    addMutation.mutate({
+      integration_type: type,
+      name,
+      config: {}
+    });
+  };
+
   return (
     <div className="max-w-3xl space-y-10 pb-12">
       {/* My Connectors */}
@@ -28,8 +63,8 @@ export function IntegrationsTab({ connected, available }: IntegrationsTabProps) 
                 <tr key={integration.id} className="hover:bg-[var(--bg-muted)] transition-colors">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      {integration.type === "shopify" && <Store size={16} className="text-[var(--fg-subtle)]" />}
-                      {integration.type === "in-house" && <Workflow size={16} className="text-[var(--fg-subtle)]" />}
+                      {integration.integration_type === "shopify" && <Store size={16} className="text-[var(--fg-subtle)]" />}
+                      {integration.integration_type === "in-house" && <Workflow size={16} className="text-[var(--fg-subtle)]" />}
                       <span className="font-medium">{integration.name}</span>
                     </div>
                   </td>
@@ -40,7 +75,7 @@ export function IntegrationsTab({ connected, available }: IntegrationsTabProps) 
                     </div>
                   </td>
                   <td className="px-4 py-3 text-[var(--fg-muted)]">
-                    {integration.lastSync || "Never"}
+                    {integration.last_checked_at || "Never"}
                   </td>
                   <td className="px-4 py-3">
                     <button className="text-xs font-medium text-[var(--fg-base)] hover:underline">
@@ -85,11 +120,14 @@ export function IntegrationsTab({ connected, available }: IntegrationsTabProps) 
             </thead>
             <tbody className="text-sm text-[var(--fg-base)] divide-y divide-[var(--border-hairline)]">
               {available.map((integration) => (
-                <tr key={integration.id} className="hover:bg-[var(--bg-muted)] transition-colors">
+                <tr key={integration.type} className="hover:bg-[var(--bg-muted)] transition-colors">
                   <td className="px-4 py-3 font-medium">{integration.name}</td>
                   <td className="px-4 py-3 text-[var(--fg-muted)]">{integration.category}</td>
                   <td className="px-4 py-3">
-                    <button className="flex items-center gap-1 text-xs font-medium text-[var(--fg-base)] border border-[var(--border-hairline)] bg-[var(--bg-surface)] px-2.5 py-1 rounded hover:bg-[var(--bg-muted)] transition-colors">
+                    <button 
+                      onClick={() => handleAdd(integration.type, integration.name)}
+                      className="flex items-center gap-1 text-xs font-medium text-[var(--fg-base)] border border-[var(--border-hairline)] bg-[var(--bg-surface)] px-2.5 py-1 rounded hover:bg-[var(--bg-muted)] transition-colors"
+                    >
                       <Plus size={12} /> Connect
                     </button>
                   </td>
@@ -106,7 +144,10 @@ export function IntegrationsTab({ connected, available }: IntegrationsTabProps) 
         <p className="text-sm text-[var(--fg-muted)] mb-4">
           Connect your in-house database or a third-party platform using our universal MCP adapter.
         </p>
-        <button className="flex items-center gap-1.5 text-sm font-medium text-[var(--fg-base)] border border-[var(--border-hairline)] bg-[var(--bg-surface)] px-4 py-2 rounded hover:bg-[var(--bg-muted)] transition-colors">
+        <button 
+          onClick={() => handleAdd("in-house", "Custom (in-house)")}
+          className="flex items-center gap-1.5 text-sm font-medium text-[var(--fg-base)] border border-[var(--border-hairline)] bg-[var(--bg-surface)] px-4 py-2 rounded hover:bg-[var(--bg-muted)] transition-colors"
+        >
           <Plus size={14} /> Add custom connector
         </button>
       </div>

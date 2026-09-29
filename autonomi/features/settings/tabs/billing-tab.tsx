@@ -1,12 +1,29 @@
-import { Download, CreditCard, Smartphone, Building } from "lucide-react";
-import type { BillingPlan } from "../use-settings";
+import { Download, CreditCard, Smartphone, Building, Loader2 } from "lucide-react";
+import { useBilling } from "../use-settings";
+import { useAuth } from "@/hooks/use-auth";
 
-interface BillingTabProps {
-  billing: BillingPlan;
-}
+export function BillingTab() {
+  const { data: billing, isLoading, error } = useBilling();
+  const { activeRole, activeWorkspaceId, isLoading: isAuthLoading } = useAuth();
+  const canManageBilling = activeRole === "owner" || activeRole === "admin";
 
-export function BillingTab({ billing }: BillingTabProps) {
-  const usagePercent = Math.min(100, Math.round((billing.usage.conversations / billing.usage.limit) * 100));
+  if (isAuthLoading) {
+    return <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-[var(--fg-muted)]" /></div>;
+  }
+
+  if (!activeWorkspaceId) {
+    return <div className="p-8 text-[var(--fg-muted)] text-center">No active workspace found.</div>;
+  }
+
+  if (isLoading) {
+    return <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-[var(--fg-muted)]" /></div>;
+  }
+  
+  if (error || !billing) {
+    return <div className="p-8 text-[var(--color-danger)] text-center">Failed to load billing settings.</div>;
+  }
+
+  const usagePercent = Math.min(100, Math.round((billing.usage.ai_tokens_used / billing.usage.ai_tokens_limit) * 100));
 
   return (
     <div className="max-w-2xl space-y-10 pb-12">
@@ -14,23 +31,30 @@ export function BillingTab({ billing }: BillingTabProps) {
       <div className="flex items-start justify-between">
         <div>
           <h3 className="text-sm font-semibold text-[var(--fg-base)]">
-            Current Plan: {billing.planName} &mdash; ${billing.price}/{billing.interval}
+            Current Plan: {billing.plan_name}
           </h3>
           <p className="text-xs text-[var(--fg-muted)] mt-1">
-            Usage: {billing.usage.conversations.toLocaleString()} / {billing.usage.limit.toLocaleString()} conversations
+            Usage: {billing.usage.ai_tokens_used.toLocaleString()} / {billing.usage.ai_tokens_limit.toLocaleString()} AI Tokens
+          </p>
+          <p className="text-xs text-[var(--fg-muted)] mt-1">
+            Active Users: {billing.usage.active_users.toLocaleString()} / {billing.usage.users_limit.toLocaleString()}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button className="text-xs font-medium bg-[var(--fg-base)] text-[var(--bg-surface)] px-3 py-1.5 rounded hover:opacity-90 transition-opacity">
-            Upgrade plan
-          </button>
-          <button className="text-xs font-medium text-[var(--fg-base)] border border-[var(--border-hairline)] bg-[var(--bg-surface)] px-3 py-1.5 rounded hover:bg-[var(--bg-muted)] transition-colors">
-            Cancel plan
-          </button>
+          {canManageBilling && (
+            <>
+              <button className="text-xs font-medium bg-[var(--fg-base)] text-[var(--bg-surface)] px-3 py-1.5 rounded hover:opacity-90 transition-opacity">
+                Upgrade plan
+              </button>
+              <button className="text-xs font-medium text-[var(--fg-base)] border border-[var(--border-hairline)] bg-[var(--bg-surface)] px-3 py-1.5 rounded hover:bg-[var(--bg-muted)] transition-colors">
+                Cancel plan
+              </button>
+            </>
+          )}
         </div>
       </div>
       
-      {/* Usage Bar (optional visual helper matching the previous design) */}
+      {/* Usage Bar */}
       <div className="h-1.5 w-full bg-[var(--bg-muted)] rounded-full overflow-hidden mt-2">
         <div 
           className="h-full bg-[var(--fg-base)] rounded-full transition-all duration-500"
@@ -38,23 +62,18 @@ export function BillingTab({ billing }: BillingTabProps) {
         />
       </div>
 
-      {/* Payment Method */}
+      {/* Payment Method (Stubbed for UI presentation) */}
       <div>
         <h3 className="text-sm font-semibold text-[var(--fg-base)] mb-4">Payment Method</h3>
         <div className="space-y-3">
-          {billing.paymentMethods.map((pm) => (
-            <label key={pm.id} className="flex items-center justify-between p-3 border border-[var(--border-hairline)] rounded-lg cursor-pointer hover:border-[var(--fg-subtle)] transition-colors">
-              <div className="flex items-center gap-3">
-                <input type="radio" name="payment_method" defaultChecked={pm.isDefault} className="mt-0.5 cursor-pointer" />
-                {pm.type === "card" && <CreditCard size={16} className="text-[var(--fg-subtle)]" />}
-                {pm.type === "paypal" && <span className="font-bold text-[var(--fg-subtle)] text-xs italic ml-1">P</span>}
-                {pm.type === "mpesa" && <Smartphone size={16} className="text-[var(--fg-subtle)]" />}
-                {pm.type === "bank" && <Building size={16} className="text-[var(--fg-subtle)]" />}
-                <span className="text-sm font-medium text-[var(--fg-base)]">{pm.label}</span>
-              </div>
-              <button className="text-xs font-medium text-[var(--fg-base)] hover:underline">Edit</button>
-            </label>
-          ))}
+          <label className="flex items-center justify-between p-3 border border-[var(--border-hairline)] rounded-lg cursor-pointer hover:border-[var(--fg-subtle)] transition-colors">
+            <div className="flex items-center gap-3">
+              <input type="radio" name="payment_method" defaultChecked={true} disabled={!canManageBilling} className="mt-0.5 cursor-pointer" />
+              <CreditCard size={16} className="text-[var(--fg-subtle)]" />
+              <span className="text-sm font-medium text-[var(--fg-base)]">Card ending 4417</span>
+            </div>
+            {canManageBilling && <button className="text-xs font-medium text-[var(--fg-base)] hover:underline">Edit</button>}
+          </label>
           
           <div className="space-y-3 mt-6 pt-6 border-t border-[var(--border-hairline)]">
             <h4 className="text-xs font-medium text-[var(--fg-muted)] uppercase tracking-wider mb-2">Add Payment Method</h4>
@@ -64,9 +83,11 @@ export function BillingTab({ billing }: BillingTabProps) {
                 <span className="w-6 h-6 rounded flex items-center justify-center font-bold text-xs italic bg-[#00457C] text-white">P</span>
                 <span className="text-sm font-medium text-[var(--fg-base)]">PayPal</span>
               </div>
-              <button className="text-xs font-medium text-[var(--fg-base)] border border-[var(--border-hairline)] bg-[var(--bg-surface)] px-3 py-1.5 rounded hover:bg-[var(--bg-muted)] transition-colors">
-                Connect
-              </button>
+              {canManageBilling && (
+                <button className="text-xs font-medium text-[var(--fg-base)] border border-[var(--border-hairline)] bg-[var(--bg-surface)] px-3 py-1.5 rounded hover:bg-[var(--bg-muted)] transition-colors">
+                  Connect
+                </button>
+              )}
             </div>
             
             <div className="flex items-center justify-between">
@@ -76,9 +97,11 @@ export function BillingTab({ billing }: BillingTabProps) {
                 </div>
                 <span className="text-sm font-medium text-[var(--fg-base)]">M-Pesa</span>
               </div>
-              <button className="text-xs font-medium text-[var(--fg-base)] border border-[var(--border-hairline)] bg-[var(--bg-surface)] px-3 py-1.5 rounded hover:bg-[var(--bg-muted)] transition-colors">
-                Connect
-              </button>
+              {canManageBilling && (
+                <button className="text-xs font-medium text-[var(--fg-base)] border border-[var(--border-hairline)] bg-[var(--bg-surface)] px-3 py-1.5 rounded hover:bg-[var(--bg-muted)] transition-colors">
+                  Connect
+                </button>
+              )}
             </div>
             
             <div className="flex items-center justify-between">
@@ -88,15 +111,17 @@ export function BillingTab({ billing }: BillingTabProps) {
                 </div>
                 <span className="text-sm font-medium text-[var(--fg-base)]">Bank transfer (enterprise)</span>
               </div>
-              <button className="text-xs font-medium text-[var(--fg-base)] border border-[var(--border-hairline)] bg-[var(--bg-surface)] px-3 py-1.5 rounded hover:bg-[var(--bg-muted)] transition-colors">
-                Contact sales
-              </button>
+              {canManageBilling && (
+                <button className="text-xs font-medium text-[var(--fg-base)] border border-[var(--border-hairline)] bg-[var(--bg-surface)] px-3 py-1.5 rounded hover:bg-[var(--bg-muted)] transition-colors">
+                  Contact sales
+                </button>
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Billing Details */}
+      {/* Billing Details (Stubbed) */}
       <div>
         <h3 className="text-sm font-semibold text-[var(--fg-base)] mb-4">Billing Details</h3>
         <div className="space-y-4 max-w-xl">
@@ -104,8 +129,9 @@ export function BillingTab({ billing }: BillingTabProps) {
             <label className="text-sm font-medium text-[var(--fg-base)]">Billing address</label>
             <input
               type="text"
-              defaultValue={billing.billingDetails.address}
-              className="w-full px-3 py-2 text-sm bg-[var(--bg-surface)] text-[var(--fg-base)] border border-[var(--border-hairline)] rounded focus:outline-none focus:border-[var(--fg-base)] transition-colors"
+              defaultValue=""
+              disabled={!canManageBilling}
+              className="w-full px-3 py-2 text-sm bg-[var(--bg-surface)] text-[var(--fg-base)] border border-[var(--border-hairline)] rounded focus:outline-none focus:border-[var(--fg-base)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               placeholder=".........................."
             />
           </div>
@@ -113,8 +139,9 @@ export function BillingTab({ billing }: BillingTabProps) {
             <label className="text-sm font-medium text-[var(--fg-base)]">Tax ID / VAT</label>
             <input
               type="text"
-              defaultValue={billing.billingDetails.taxId}
-              className="w-full px-3 py-2 text-sm bg-[var(--bg-surface)] text-[var(--fg-base)] border border-[var(--border-hairline)] rounded focus:outline-none focus:border-[var(--fg-base)] transition-colors"
+              defaultValue=""
+              disabled={!canManageBilling}
+              className="w-full px-3 py-2 text-sm bg-[var(--bg-surface)] text-[var(--fg-base)] border border-[var(--border-hairline)] rounded focus:outline-none focus:border-[var(--fg-base)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               placeholder=".........................."
             />
           </div>
@@ -123,12 +150,15 @@ export function BillingTab({ billing }: BillingTabProps) {
             <div className="flex gap-2">
               <input
                 type="text"
-                className="flex-1 px-3 py-2 text-sm bg-[var(--bg-surface)] text-[var(--fg-base)] border border-[var(--border-hairline)] rounded focus:outline-none focus:border-[var(--fg-base)] transition-colors"
+                disabled={!canManageBilling}
+                className="flex-1 px-3 py-2 text-sm bg-[var(--bg-surface)] text-[var(--fg-base)] border border-[var(--border-hairline)] rounded focus:outline-none focus:border-[var(--fg-base)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 placeholder="......................"
               />
-              <button className="text-sm font-medium text-[var(--fg-base)] border border-[var(--border-hairline)] bg-[var(--bg-surface)] px-4 py-2 rounded hover:bg-[var(--bg-muted)] transition-colors">
-                Apply
-              </button>
+              {canManageBilling && (
+                <button className="text-sm font-medium text-[var(--fg-base)] border border-[var(--border-hairline)] bg-[var(--bg-surface)] px-4 py-2 rounded hover:bg-[var(--bg-muted)] transition-colors">
+                  Apply
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -142,7 +172,9 @@ export function BillingTab({ billing }: BillingTabProps) {
             <tbody className="text-sm text-[var(--fg-base)] divide-y divide-[var(--border-hairline)]">
               {billing.invoices.map((inv) => (
                 <tr key={inv.id} className="hover:bg-[var(--bg-muted)] transition-colors group">
-                  <td className="px-4 py-3 font-medium">{inv.date}</td>
+                  <td className="px-4 py-3 font-medium">
+                    {new Date(inv.date).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}
+                  </td>
                   <td className="px-4 py-3 text-[var(--fg-muted)]">${inv.amount.toFixed(2)}</td>
                   <td className="px-4 py-3">
                     <span className="text-xs font-medium text-[var(--color-success)]">{inv.status}</span>
@@ -154,6 +186,13 @@ export function BillingTab({ billing }: BillingTabProps) {
                   </td>
                 </tr>
               ))}
+              {billing.invoices.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="px-4 py-8 text-center text-[var(--fg-muted)]">
+                    No invoices yet.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

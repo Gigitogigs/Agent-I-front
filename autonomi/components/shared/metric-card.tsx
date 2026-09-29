@@ -33,7 +33,7 @@ export function MetricCard({ label, value, delta, deltaLabel, unit, className }:
       <p className="text-2xl font-semibold text-[var(--fg-base)] tabular-nums">
         {value}{unit}
       </p>
-      {TrendIcon && (
+      {TrendIcon && delta != null && (
         <div className={cn("flex items-center gap-1 mt-1 text-xs", trendColor)}>
           <TrendIcon size={12} />
           <span>{deltaLabel ?? (delta > 0 ? `+${delta}` : delta)}</span>

@@ -18,6 +18,7 @@ import {
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import WorkspaceSwitcher from "./workspace-switcher";
+import { useAuth } from "@/hooks/use-auth";
 
 const NAV_ITEMS = [
   { href: "/",             label: "Home",                icon: Home },
@@ -33,6 +34,7 @@ const NAV_ITEMS = [
 export default function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const { user, logout, isLoggingOut } = useAuth();
 
   return (
     <aside
@@ -91,16 +93,17 @@ export default function Sidebar() {
           <div className="w-7 h-7 rounded-full bg-[var(--color-gray-300)] dark:bg-[var(--color-gray-700)] shrink-0" />
           {!collapsed && (
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-[var(--fg-base)] truncate">Admin User</p>
-              <p className="text-xs text-[var(--fg-muted)] truncate">admin@autonomi.ai</p>
+              <p className="text-xs font-medium text-[var(--fg-base)] truncate">{user?.name ?? "…"}</p>
+              <p className="text-xs text-[var(--fg-muted)] truncate">{user?.email ?? ""}</p>
             </div>
           )}
         </Link>
         {!collapsed && (
           <button
-            title="Logout"
-            onClick={() => window.location.href = "/login"}
-            className="text-[var(--fg-subtle)] hover:text-[var(--fg-base)] transition-colors p-1"
+            title={isLoggingOut ? "Logging out…" : "Logout"}
+            onClick={logout}
+            disabled={isLoggingOut}
+            className="text-[var(--fg-subtle)] hover:text-[var(--fg-base)] disabled:opacity-50 transition-colors p-1"
           >
             <LogOut size={14} />
           </button>

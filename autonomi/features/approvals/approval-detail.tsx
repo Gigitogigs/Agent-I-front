@@ -12,13 +12,16 @@ import type { Approval } from "@/types";
 interface ApprovalDetailProps {
   approval: Approval;
   onApprove: (id: string) => void;
-  onReject: (id: string, reason: string) => void;
+  onReject: (id: string, reason: string) => Promise<void>;
+  isApprovePending?: boolean;
+  isRejectPending?: boolean;
 }
 
-export function ApprovalDetail({ approval, onApprove, onReject }: ApprovalDetailProps) {
+export function ApprovalDetail({ approval, onApprove, onReject, isApprovePending = false, isRejectPending = false }: ApprovalDetailProps) {
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState("");
   const [reasonError, setReasonError] = useState("");
+  const [rejectError, setRejectError] = useState("");
 
   const isPending = approval.status === "PENDING";
 
@@ -26,15 +29,21 @@ export function ApprovalDetail({ approval, onApprove, onReject }: ApprovalDetail
     setRejecting(true);
   }
 
-  function handleRejectConfirm() {
+  async function handleRejectConfirm() {
     if (!reason.trim()) {
       setReasonError("A reason is required when rejecting.");
       return;
     }
-    onReject(approval.id, reason.trim());
-    setRejecting(false);
-    setReason("");
-    setReasonError("");
+    setRejectError("");
+    try {
+      await onReject(approval.id, reason.trim());
+      // Only close form if the API call succeeded
+      setRejecting(false);
+      setReason("");
+      setReasonError("");
+    } catch {
+      setRejectError("Rejection failed. The approval may have already been resolved — please refresh the queue.");
+    }
   }
 
   function handleCancel() {
@@ -130,10 +139,11 @@ export function ApprovalDetail({ approval, onApprove, onReject }: ApprovalDetail
               <button
                 id="approve-btn"
                 onClick={() => onApprove(approval.id)}
+                disabled={isApprovePending || isRejectPending}
                 className="
                   flex-1 py-2 text-xs font-semibold
                   bg-[var(--fg-base)] text-[var(--bg-surface)]
-                  hover:opacity-90 transition-opacity
+                  hover:opacity-90 disabled:opacity-50 transition-opacity
                 "
                 style={{ borderRadius: "var(--radius-interactive)" }}
               >
@@ -142,11 +152,12 @@ export function ApprovalDetail({ approval, onApprove, onReject }: ApprovalDetail
               <button
                 id="reject-btn"
                 onClick={handleRejectClick}
+                disabled={isApprovePending || isRejectPending}
                 className="
                   flex-1 py-2 text-xs font-semibold
                   border border-[var(--border-hairline)]
                   text-[var(--fg-base)]
-                  hover:bg-[var(--bg-muted)] transition-colors
+                  hover:bg-[var(--bg-muted)] disabled:opacity-50 transition-colors
                 "
                 style={{ borderRadius: "var(--radius-interactive)" }}
               >
@@ -182,17 +193,21 @@ export function ApprovalDetail({ approval, onApprove, onReject }: ApprovalDetail
               {reasonError && (
                 <p className="text-[10px] text-[var(--color-danger)]">{reasonError}</p>
               )}
+              {rejectError && (
+                <p className="text-[10px] text-[var(--color-danger)]">{rejectError}</p>
+              )}
               <div className="flex gap-2 pt-1">
                 <button
                   onClick={handleRejectConfirm}
+                  disabled={isRejectPending}
                   className="
                     flex-1 py-1.5 text-xs font-semibold
                     bg-[var(--color-danger)] text-white
-                    hover:opacity-90 transition-opacity
+                    hover:opacity-90 disabled:opacity-50 transition-opacity
                   "
                   style={{ borderRadius: "var(--radius-interactive)" }}
                 >
-                  Confirm rejection
+                  {isRejectPending ? "Rejecting..." : "Confirm rejection"}
                 </button>
                 <button
                   onClick={handleCancel}

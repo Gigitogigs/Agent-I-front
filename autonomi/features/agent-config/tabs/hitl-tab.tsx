@@ -1,5 +1,5 @@
 import { Plus, Trash2 } from "lucide-react";
-import type { AgentConfig } from "../use-agent-config";
+import type { AgentConfig, HitlBreakpoint } from "../use-agent-config";
 
 interface HitlTabProps {
   config: AgentConfig;
@@ -7,9 +7,9 @@ interface HitlTabProps {
 }
 
 export function HitlTab({ config, onChange }: HitlTabProps) {
-  const breakpoints = config.hitlBreakpoints;
+  const breakpoints = config.hitlBreakpoints || [];
 
-  const updateBreakpoint = (index: number, updates: Partial<AgentConfig["hitlBreakpoints"][0]>) => {
+  const updateBreakpoint = (index: number, updates: Partial<HitlBreakpoint>) => {
     const newBreakpoints = [...breakpoints];
     newBreakpoints[index] = { ...newBreakpoints[index], ...updates };
     onChange({ hitlBreakpoints: newBreakpoints });

@@ -2,23 +2,37 @@
 
 import { useState } from "react";
 import { Search, Plus, MoreVertical } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { STUB_TEAM, ROLE_PERMISSIONS, type TeamMember, type Role } from "@/features/team/use-team";
+import { cn, relativeTime } from "@/lib/utils";
+import { useMembers, useUpdateMemberRole, useRemoveMember, useResendInvite, useInviteMember, ROLE_PERMISSIONS } from "@/features/team/use-team";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function TeamPage() {
+  const { activeRole } = useAuth();
+  const canManageTeam = activeRole === "owner" || activeRole === "admin";
+
   const [searchQuery, setSearchQuery] = useState("");
-  const [members, setMembers] = useState<TeamMember[]>(STUB_TEAM);
+  const { data: members = [], isLoading } = useMembers();
+  const updateRoleMutation = useUpdateMemberRole();
+  const removeMemberMutation = useRemoveMember();
+  const resendInviteMutation = useResendInvite();
+  const inviteMutation = useInviteMember();
+
+  const handleInvite = () => {
+    const email = window.prompt("Enter the email address of the user to invite:");
+    if (email && email.trim()) {
+      inviteMutation.mutate({ email: email.trim(), role: "operator" });
+    }
+  };
 
   const filteredMembers = members.filter(
     (m) =>
-      m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (m.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
       m.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleRoleChange = (id: string, newRole: Role) => {
-    setMembers((prev) =>
-      prev.map((m) => (m.id === id ? { ...m, role: newRole } : m))
-    );
+  const handleRoleChange = (id: string | null, newRole: string) => {
+    if (!id) return;
+    updateRoleMutation.mutate({ memberId: id, role: newRole });
   };
 
   return (
@@ -31,9 +45,11 @@ export default function TeamPage() {
             Manage who has access to this workspace.
           </p>
         </div>
-        <button className="flex items-center gap-1.5 text-sm font-medium bg-[var(--fg-base)] text-[var(--bg-surface)] px-4 py-2 rounded hover:opacity-90 transition-opacity shadow-sm">
-          <Plus size={16} /> Invite member
-        </button>
+        {canManageTeam && (
+          <button onClick={handleInvite} className="flex items-center gap-1.5 text-sm font-medium bg-[var(--fg-base)] text-[var(--bg-surface)] px-4 py-2 rounded hover:opacity-90 transition-opacity shadow-sm">
+            <Plus size={16} /> Invite member
+          </button>
+        )}
       </div>
 
       {/* ── Main Content ───────────────────────────────────────────── */}
@@ -66,7 +82,7 @@ export default function TeamPage() {
             </thead>
             <tbody className="text-sm text-[var(--fg-base)] divide-y divide-[var(--border-hairline)]">
               {filteredMembers.map((member) => (
-                <tr key={member.id} className="hover:bg-[var(--bg-muted)] transition-colors group">
+                <tr key={member.id || member.email} className="hover:bg-[var(--bg-muted)] transition-colors group">
                   <td className="px-5 py-3 font-medium">
                     {member.name || <span className="text-[var(--fg-muted)] italic">Pending...</span>}
                   </td>
@@ -74,17 +90,17 @@ export default function TeamPage() {
                     {member.email}
                   </td>
                   <td className="px-5 py-3">
-                    {member.role === "Owner" ? (
-                      <span className="font-medium text-[var(--fg-base)] px-2 py-1">Owner</span>
+                    {member.role === "owner" || !canManageTeam || !member.id ? (
+                      <span className="font-medium text-[var(--fg-base)] px-2 py-1 capitalize">{member.role}</span>
                     ) : (
                       <select
                         value={member.role}
-                        onChange={(e) => handleRoleChange(member.id, e.target.value as Role)}
-                        className="bg-transparent text-[var(--fg-base)] focus:outline-none cursor-pointer px-1 py-1 rounded hover:bg-[var(--bg-surface)] border border-transparent hover:border-[var(--border-hairline)] transition-colors"
+                        onChange={(e) => handleRoleChange(member.id, e.target.value)}
+                        className="bg-transparent text-[var(--fg-base)] focus:outline-none cursor-pointer px-1 py-1 rounded hover:bg-[var(--bg-surface)] border border-transparent hover:border-[var(--border-hairline)] transition-colors capitalize"
                       >
-                        <option value="Admin">Admin</option>
-                        <option value="Operator">Operator</option>
-                        <option value="Read-only">Read-only</option>
+                        <option value="admin">Admin</option>
+                        <option value="operator">Operator</option>
+                        <option value="read-only">Read-only</option>
                       </select>
                     )}
                   </td>
@@ -92,7 +108,7 @@ export default function TeamPage() {
                     <span
                       className={cn(
                         "px-2 py-0.5 rounded text-[11px] font-medium uppercase tracking-wide",
-                        member.status === "Active"
+                        member.status === "active"
                           ? "bg-[var(--color-success)]/10 text-[var(--color-success)]"
                           : "bg-[var(--color-warning)]/10 text-[var(--color-warning)]"
                       )}
@@ -101,22 +117,21 @@ export default function TeamPage() {
                     </span>
                   </td>
                   <td className="px-5 py-3 text-[var(--fg-muted)]">
-                    {member.lastActive || "—"}
+                    {member.last_active_at ? relativeTime(member.last_active_at) : "—"}
                   </td>
                   <td className="px-5 py-3 text-right">
-                    {member.status === "Pending" ? (
-                      <div className="flex items-center justify-end gap-2">
-                        <button className="text-xs font-medium text-[var(--fg-base)] hover:underline whitespace-nowrap">
-                          Resend
+                    {canManageTeam && (
+                      member.status === "pending" ? (
+                        <div className="flex items-center justify-end gap-2">
+                          <button onClick={() => member.id && resendInviteMutation.mutate(member.id)} className="text-xs font-medium text-[var(--fg-base)] hover:underline whitespace-nowrap">
+                            Resend
+                          </button>
+                        </div>
+                      ) : member.role !== "owner" && member.id ? (
+                        <button onClick={() => removeMemberMutation.mutate(member.id!)} className="text-xs font-medium text-[var(--color-danger)] hover:underline opacity-0 group-hover:opacity-100 focus:opacity-100">
+                          Remove
                         </button>
-                        <button className="p-1.5 text-[var(--fg-subtle)] hover:text-[var(--fg-base)] transition-colors rounded hover:bg-[var(--bg-surface)]">
-                          <MoreVertical size={16} />
-                        </button>
-                      </div>
-                    ) : (
-                      <button className="p-1.5 text-[var(--fg-subtle)] hover:text-[var(--fg-base)] transition-colors rounded hover:bg-[var(--bg-surface)] opacity-0 group-hover:opacity-100 focus:opacity-100">
-                        <MoreVertical size={16} />
-                      </button>
+                      ) : null
                     )}
                   </td>
                 </tr>
@@ -150,7 +165,7 @@ export default function TeamPage() {
               <tbody className="text-sm divide-y divide-[var(--border-hairline)]">
                 {ROLE_PERMISSIONS.map((perm) => (
                   <tr key={perm.role} className="text-[var(--fg-muted)]">
-                    <td className="px-5 py-2.5 font-medium text-[var(--fg-base)]">{perm.role}</td>
+                    <td className="px-5 py-2.5 font-medium text-[var(--fg-base)] capitalize">{perm.role}</td>
                     <td className="px-5 py-2.5 text-center">{perm.approvals}</td>
                     <td className="px-5 py-2.5 text-center">{perm.config}</td>
                     <td className="px-5 py-2.5 text-center">{perm.billing}</td>

@@ -13,7 +13,8 @@ export interface User {
 export interface Workspace {
   id: string;
   name: string;
-  slug: string;
+  role: string;
+  deletion_scheduled_at: string | null;
 }
 
 // ── Approvals ────────────────────────────────────────────────────────────

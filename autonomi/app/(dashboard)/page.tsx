@@ -1,29 +1,31 @@
-import type { Metadata } from "next";
-import { CheckCircle, BarChart2, Wifi, MessageSquare, ArrowRight } from "lucide-react";
+"use client";
+
+import { CheckCircle, BarChart2, Wifi, MessageSquare, ArrowRight, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { MetricCard } from "@/components/shared/metric-card";
 import { SlaCountdown } from "@/components/shared/sla-countdown";
 import { StatusBadge } from "@/components/shared/status-badge";
-
-export const metadata: Metadata = {
-  title: "Home — Autonomi",
-  description: "Dashboard overview for Autonomi",
-};
-
-// ── Stub data (replace with TanStack Query fetches) ──────────────────────
-const PENDING_APPROVALS = [
-  { id: "1", summary: "Refund $84 — order #4471",   risk: "HIGH" as const, expiresAt: new Date(Date.now() + 4  * 60_000).toISOString() },
-  { id: "2", summary: "Cancel order #4502",          risk: "MED"  as const, expiresAt: new Date(Date.now() + 12 * 60_000).toISOString() },
-  { id: "3", summary: "Address change — #4498",      risk: "LOW"  as const, expiresAt: new Date(Date.now() + 60 * 60_000).toISOString() },
-];
-
-const RECENT_CONVERSATIONS = [
-  { id: "221", status: "ESCALATED" as const, summary: "damaged item, refund request" },
-  { id: "219", status: "RESOLVED"  as const, summary: "where's my order" },
-  { id: "217", status: "ESCALATED" as const, summary: "refund dispute" },
-];
+import { useHomepageSummary } from "@/hooks/use-homepage-summary";
 
 export default function HomePage() {
+  const { data: summary, isLoading, error } = useHomepageSummary();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Loader2 className="animate-spin text-[var(--fg-muted)]" size={24} />
+      </div>
+    );
+  }
+
+  if (error || !summary) {
+    return (
+      <div className="p-4 text-sm text-[var(--color-danger)] bg-[var(--bg-surface)] border border-[var(--color-danger)] rounded">
+        Failed to load dashboard summary.
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <h1 className="text-lg font-semibold text-[var(--fg-base)]">Home</h1>
@@ -33,7 +35,7 @@ export default function HomePage() {
         <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--border-hairline)]">
           <div className="flex items-center gap-2 text-sm font-semibold text-[var(--fg-base)]">
             <CheckCircle size={14} className="text-[var(--fg-muted)]" />
-            Pending Approvals
+            Pending Approvals ({summary.pendingApprovalCount})
           </div>
           <Link
             href="/approvals"
@@ -43,13 +45,18 @@ export default function HomePage() {
           </Link>
         </div>
         <div className="divide-y divide-[var(--border-hairline)]">
-          {PENDING_APPROVALS.map((a) => (
+          {summary.pendingApprovals.map((a) => (
             <div key={a.id} className="flex items-center gap-4 px-5 py-3">
-              <StatusBadge variant={a.risk} />
+              <StatusBadge variant={a.riskLevel} />
               <span className="flex-1 text-sm text-[var(--fg-base)] truncate">{a.summary}</span>
-              <SlaCountdown expiresAt={a.expiresAt} />
+              <SlaCountdown expiresAt={a.slaExpiresAt} />
             </div>
           ))}
+          {summary.pendingApprovals.length === 0 && (
+            <div className="px-5 py-8 text-center text-sm text-[var(--fg-muted)]">
+              No pending approvals.
+            </div>
+          )}
         </div>
       </section>
 
@@ -70,10 +77,10 @@ export default function HomePage() {
             </Link>
           </div>
           <div className="grid grid-cols-2 gap-px bg-[var(--border-hairline)] border-t border-[var(--border-hairline)]">
-            <MetricCard label="Resolution Rate"    value="87"   unit="%" delta={2}    deltaLabel="+2%" className="border-none" />
-            <MetricCard label="Active Convos"      value={12}               className="border-none" />
-            <MetricCard label="Avg Latency"        value="1.4"  unit="s" delta={-1} deltaLabel="↓0.2s" className="border-none" />
-            <MetricCard label="Guardrail Blocks"   value="2.1"  unit="%" delta={0.4} deltaLabel="+0.4%" className="border-none" />
+            <MetricCard label="Resolution Rate"    value={summary.stats.resolutionRate} className="border-none" />
+            <MetricCard label="Active Convos"      value={summary.stats.activeConversations} className="border-none" />
+            <MetricCard label="Avg Latency"        value={summary.stats.avgLatency} className="border-none" />
+            <MetricCard label="Guardrail Blocks"   value={summary.stats.guardrailBlockRate} className="border-none" />
           </div>
         </section>
 
@@ -92,13 +99,7 @@ export default function HomePage() {
             </Link>
           </div>
           <ul className="px-5 py-4 space-y-2.5">
-            {[
-              { label: "Shopify adapter",  ok: true },
-              { label: "Orchestrator",     ok: true },
-              { label: "Retrieval Agent",  ok: true },
-              { label: "Action Agent",     ok: true },
-              { label: "Escalation Agent", ok: true },
-            ].map((item) => (
+            {summary.systemHealth.map((item) => (
               <li key={item.label} className="flex items-center gap-2 text-sm">
                 <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${item.ok ? "bg-[var(--color-success)]" : "bg-[var(--color-danger)]"}`} />
                 <span className="text-[var(--fg-base)]">{item.label}</span>
@@ -124,13 +125,18 @@ export default function HomePage() {
           </Link>
         </div>
         <div className="divide-y divide-[var(--border-hairline)]">
-          {RECENT_CONVERSATIONS.map((c) => (
+          {summary.recentConversations.map((c) => (
             <div key={c.id} className="flex items-center gap-4 px-5 py-3">
               <StatusBadge variant={c.status} />
               <span className="text-xs text-[var(--fg-muted)] shrink-0">#{c.id}</span>
               <span className="flex-1 text-sm text-[var(--fg-base)] truncate">{c.summary}</span>
             </div>
           ))}
+          {summary.recentConversations.length === 0 && (
+            <div className="px-5 py-8 text-center text-sm text-[var(--fg-muted)]">
+              No recent conversations.
+            </div>
+          )}
         </div>
       </section>
     </div>

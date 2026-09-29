@@ -1,33 +1,99 @@
 "use client";
 
-import { ChevronsUpDown, Building2 } from "lucide-react";
+import { useState } from "react";
+import { ChevronsUpDown, Building2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
 
 interface WorkspaceSwitcherProps {
   collapsed: boolean;
 }
 
 export default function WorkspaceSwitcher({ collapsed }: WorkspaceSwitcherProps) {
+  const { memberships, activeWorkspaceId, setActiveWorkspace } = useAuth();
+  const [open, setOpen] = useState(false);
+
+  const activeMembership = memberships.find((m) => m.workspace_id === activeWorkspaceId)
+    ?? memberships[0];
+
+  const hasMultiple = memberships.length > 1;
+
   return (
-    <button
-      className={cn(
-        "w-full flex items-center gap-2 p-3 text-left",
-        "text-[var(--fg-base)] hover:bg-[var(--bg-muted)] transition-colors"
-      )}
-      title={collapsed ? "Switch workspace" : undefined}
-    >
-      <div className="w-7 h-7 rounded flex items-center justify-center bg-[var(--bg-muted)] shrink-0">
-        <Building2 size={14} className="text-[var(--fg-muted)]" />
-      </div>
-      {!collapsed && (
+    <div className="relative">
+      <button
+        onClick={() => hasMultiple && setOpen((o) => !o)}
+        className={cn(
+          "w-full flex items-center gap-2 p-3 text-left",
+          "text-[var(--fg-base)] transition-colors",
+          hasMultiple && "hover:bg-[var(--bg-muted)] cursor-pointer",
+          !hasMultiple && "cursor-default"
+        )}
+        title={collapsed ? (activeMembership?.workspace_name ?? "Workspace") : undefined}
+      >
+        <div className="w-7 h-7 rounded flex items-center justify-center bg-[var(--bg-muted)] shrink-0">
+          <Building2 size={14} className="text-[var(--fg-muted)]" />
+        </div>
+        {!collapsed && (
+          <>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-[var(--fg-base)] truncate">
+                {activeMembership?.workspace_name ?? "Loading…"}
+              </p>
+              <p className="text-xs text-[var(--fg-muted)] capitalize">
+                {activeMembership?.role ?? ""}
+              </p>
+            </div>
+            {hasMultiple && (
+              <ChevronsUpDown size={12} className="text-[var(--fg-subtle)] shrink-0" />
+            )}
+          </>
+        )}
+      </button>
+
+      {/* Dropdown — only rendered when open and there are multiple workspaces */}
+      {open && hasMultiple && (
         <>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-[var(--fg-base)] truncate">Demo Workspace</p>
-            <p className="text-xs text-[var(--fg-muted)]">Free plan</p>
+          {/* Click-away overlay */}
+          <div
+            className="fixed inset-0 z-10"
+            onClick={() => setOpen(false)}
+          />
+          <div className={cn(
+            "absolute left-2 right-2 z-20 mt-1 rounded border",
+            "bg-[var(--bg-surface)] border-[var(--border-hairline)] shadow-lg",
+            "top-full"
+          )}>
+            {memberships.map((m) => (
+              <button
+                key={m.workspace_id}
+                onClick={() => {
+                  setActiveWorkspace(m.workspace_id);
+                  setOpen(false);
+                }}
+                className={cn(
+                  "w-full flex items-center gap-2 px-3 py-2 text-left text-xs",
+                  "hover:bg-[var(--bg-muted)] transition-colors",
+                  m.workspace_id === activeWorkspaceId && "text-[var(--fg-base)]"
+                )}
+              >
+                <Check
+                  size={11}
+                  className={cn(
+                    "shrink-0",
+                    m.workspace_id === activeWorkspaceId
+                      ? "opacity-100"
+                      : "opacity-0"
+                  )}
+                />
+                <div className="min-w-0">
+                  <p className="font-medium truncate">{m.workspace_name}</p>
+                  <p className="text-[var(--fg-muted)] capitalize">{m.role}</p>
+                </div>
+              </button>
+            ))}
           </div>
-          <ChevronsUpDown size={12} className="text-[var(--fg-subtle)] shrink-0" />
         </>
       )}
-    </button>
+    </div>
   );
 }

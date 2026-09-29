@@ -1,28 +1,32 @@
 "use client";
 
 import { useState } from "react";
-import { Search, Database } from "lucide-react";
+import { Search, Database, Loader2 } from "lucide-react";
 import { EmptyState } from "@/components/shared/empty-state";
 import { UploadZone } from "@/features/knowledge/upload-zone";
 import { DocumentRow } from "@/features/knowledge/document-row";
 import { RetrievalTester } from "@/features/knowledge/retrieval-tester";
 import {
-  STUB_DOCUMENTS,
   STATUS_OPTIONS,
-  filterDocuments,
+  useKnowledgeDocuments,
+  useDeleteDocument,
+  useRetryDocument,
 } from "@/features/knowledge/use-knowledge";
-import type { KnowledgeDocument, DocStatus } from "@/features/knowledge/use-knowledge";
+import type { DocStatus } from "@/features/knowledge/use-knowledge";
 import { cn } from "@/lib/utils";
 
 export default function KnowledgeBasePage() {
-  const [documents, setDocuments] = useState<KnowledgeDocument[]>(STUB_DOCUMENTS);
   const [activeStatus, setActiveStatus] = useState<DocStatus | "ALL">("ALL");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const visible = filterDocuments(documents, activeStatus, searchQuery);
+  const { data: documents = [], isLoading, error } = useKnowledgeDocuments(searchQuery, activeStatus);
+  const deleteMutation = useDeleteDocument();
+  const retryMutation = useRetryDocument();
 
   function handleDelete(id: string) {
-    setDocuments((prev) => prev.filter((d) => d.id !== id));
+    if (confirm("Are you sure you want to delete this document?")) {
+      deleteMutation.mutate(id);
+    }
   }
 
   return (
@@ -78,7 +82,15 @@ export default function KnowledgeBasePage() {
 
         {/* List Body */}
         <div className="border-x border-[var(--border-hairline)] rounded-b-lg overflow-hidden border-b -mt-4 bg-[var(--bg-surface)]">
-          {visible.length === 0 ? (
+          {isLoading ? (
+            <div className="flex items-center justify-center p-8">
+              <Loader2 className="animate-spin text-[var(--fg-muted)]" size={24} />
+            </div>
+          ) : error ? (
+            <div className="p-4 text-sm text-[var(--color-danger)] text-center">
+              Failed to load knowledge base documents.
+            </div>
+          ) : documents.length === 0 ? (
             <EmptyState
               icon={Database}
               title={searchQuery || activeStatus !== "ALL" ? "No matching documents" : "No documents yet"}
@@ -90,11 +102,12 @@ export default function KnowledgeBasePage() {
             />
           ) : (
             <div>
-              {visible.map((doc) => (
+              {documents.map((doc) => (
                 <DocumentRow
                   key={doc.id}
                   doc={doc}
                   onDelete={handleDelete}
+                  onRetry={(id) => retryMutation.mutate(id)}
                 />
               ))}
             </div>

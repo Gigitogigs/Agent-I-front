@@ -22,7 +22,7 @@ export function PromptToolsTab({ config, onChange }: PromptToolsTabProps) {
           </button>
         </div>
         <textarea
-          value={config.systemPrompt}
+          value={config.systemPrompt || ""}
           onChange={(e) => onChange({ systemPrompt: e.target.value })}
           rows={8}
           className="w-full px-3 py-2 text-sm font-mono bg-[var(--bg-surface)] text-[var(--fg-base)] border border-[var(--border-hairline)] rounded focus:outline-none focus:border-[var(--fg-base)] transition-colors resize-y"
@@ -36,7 +36,7 @@ export function PromptToolsTab({ config, onChange }: PromptToolsTabProps) {
       {/* Tool Allowlist */}
       <div>
         <label className="text-sm font-medium text-[var(--fg-base)] mb-2 block">Tool Allowlist</label>
-        {config.tools.length === 0 ? (
+        {!(config.tools && config.tools.length > 0) ? (
           <div className="px-4 py-3 text-sm text-[var(--fg-muted)] bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded italic">
             This agent has no tools available.
           </div>

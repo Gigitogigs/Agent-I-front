@@ -1,3 +1,7 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiClient } from "@/lib/api-client";
+import { useAuth } from "@/hooks/use-auth";
+
 export type ConfigRailItem = "orchestrator" | "retrieval" | "action" | "escalation" | "global";
 export type ConfigTabId = "models" | "prompt" | "guardrails" | "hitl";
 
@@ -13,90 +17,112 @@ export const PROVIDERS: Provider[] = [
   { id: "ollama", name: "Ollama (Local)", models: ["llama3", "mistral", "phi3"] },
 ];
 
-export interface AgentConfig {
-  id: ConfigRailItem;
-  provider: string;
-  model: string;
-  apiKey: string;
-  fallbackModel: string;
-  systemPrompt: string;
-  tools: string[];
-  guardrails: {
-    pii: boolean;
-    toxicity: boolean;
-    promptInjection: boolean;
-    refundCap?: number;
-    discountLimit?: number;
-  };
-  hitlBreakpoints: {
-    id: string;
-    label: string;
-    expiryBehavior: "auto-escalate" | "auto-reject";
-    slaWindowMins: number;
-  }[];
+export interface HitlBreakpoint {
+  id: string;
+  label: string;
+  expiryBehavior: "auto-escalate" | "auto-reject";
+  slaWindowMins: number;
 }
 
-export const STUB_CONFIG: Record<ConfigRailItem, AgentConfig> = {
-  orchestrator: {
-    id: "orchestrator",
-    provider: "anthropic",
-    model: "claude-3-5-sonnet-20240620",
-    apiKey: "sk-ant-1234567890",
-    fallbackModel: "gpt-4o",
-    systemPrompt: "You are the orchestrator. Analyze user requests and route them to the appropriate specialized agent.",
-    tools: ["route_request", "clarify_intent"],
-    guardrails: { pii: true, toxicity: true, promptInjection: true },
-    hitlBreakpoints: [
-      { id: "b1", label: "Low Confidence Routing", expiryBehavior: "auto-escalate", slaWindowMins: 30 }
-    ]
-  },
-  retrieval: {
-    id: "retrieval",
-    provider: "anthropic",
-    model: "claude-3-haiku-20240307",
-    apiKey: "sk-ant-1234567890",
-    fallbackModel: "gpt-3.5-turbo",
-    systemPrompt: "You are the retrieval agent. Given a query, extract the exact chunks from the vector database that answer it.",
-    tools: ["semantic_search", "document_fetch"],
-    guardrails: { pii: false, toxicity: false, promptInjection: true },
-    hitlBreakpoints: []
-  },
-  action: {
-    id: "action",
-    provider: "openai",
-    model: "gpt-4o",
-    apiKey: "sk-proj-0987654321",
-    fallbackModel: "claude-3-5-sonnet-20240620",
-    systemPrompt: "You are the action agent. Execute transactions on behalf of the user using the available tools.",
-    tools: ["issue_refund", "cancel_order", "apply_discount", "update_address"],
-    guardrails: { pii: true, toxicity: false, promptInjection: true, refundCap: 50, discountLimit: 20 },
-    hitlBreakpoints: [
-      { id: "b2", label: "Refund Exceeds Cap", expiryBehavior: "auto-reject", slaWindowMins: 60 },
-      { id: "b3", label: "Destructive Action (Cancel Order)", expiryBehavior: "auto-escalate", slaWindowMins: 120 }
-    ]
-  },
-  escalation: {
-    id: "escalation",
-    provider: "anthropic",
-    model: "claude-3-5-sonnet-20240620",
-    apiKey: "sk-ant-1234567890",
-    fallbackModel: "gpt-4o",
-    systemPrompt: "You are the escalation agent. Summarize context for the human operator and draft initial responses.",
-    tools: ["draft_email", "create_ticket"],
-    guardrails: { pii: true, toxicity: true, promptInjection: true },
-    hitlBreakpoints: [
-      { id: "b4", label: "Draft Requires Review", expiryBehavior: "auto-reject", slaWindowMins: 1440 }
-    ]
-  },
-  global: {
-    id: "global",
-    provider: "anthropic",
-    model: "claude-3-haiku-20240307",
-    apiKey: "",
-    fallbackModel: "",
-    systemPrompt: "Global system policies.",
-    tools: [],
-    guardrails: { pii: true, toxicity: true, promptInjection: true },
-    hitlBreakpoints: []
-  }
-};
+export interface AgentConfig {
+  id: ConfigRailItem;
+  provider: string | null;
+  model: string | null;
+  fallbackModel: string | null;
+  systemPrompt: string | null;
+  tools: string[] | null;
+  guardrails: any | null;
+  hitlBreakpoints: HitlBreakpoint[] | null;
+  apiKeyHint: string | null;
+}
+
+export interface AgentConfigOut {
+  global: AgentConfig;
+  orchestrator: AgentConfig;
+  retrieval: AgentConfig;
+  action: AgentConfig;
+  escalation: AgentConfig;
+}
+
+export function useAgentConfigs() {
+  const { activeWorkspaceId } = useAuth();
+
+  return useQuery<AgentConfigOut>({
+    queryKey: ["workspaces", activeWorkspaceId, "agents"],
+    queryFn: async () => {
+      const raw = await apiClient.get<any>(`/workspaces/${activeWorkspaceId}/agents`);
+      return {
+        global: mapAgentConfigOut(raw.global, "global"),
+        orchestrator: mapAgentConfigOut(raw.orchestrator, "orchestrator"),
+        retrieval: mapAgentConfigOut(raw.retrieval, "retrieval"),
+        action: mapAgentConfigOut(raw.action, "action"),
+        escalation: mapAgentConfigOut(raw.escalation, "escalation"),
+      };
+    },
+    enabled: !!activeWorkspaceId,
+  });
+}
+
+export function useUpdateAgentConfig(agentType: ConfigRailItem) {
+  const queryClient = useQueryClient();
+  const { activeWorkspaceId } = useAuth();
+
+  return useMutation({
+    mutationFn: (data: Partial<AgentConfig>) => {
+      const payload: Record<string, any> = {};
+      if (data.provider !== undefined) payload.provider = data.provider;
+      if (data.model !== undefined) payload.model = data.model;
+      if (data.fallbackModel !== undefined) payload.fallback_model = data.fallbackModel;
+      if (data.systemPrompt !== undefined) payload.system_prompt = data.systemPrompt;
+      if (data.tools !== undefined) payload.tools = data.tools;
+      if (data.guardrails !== undefined) payload.guardrails = data.guardrails;
+      if (data.hitlBreakpoints !== undefined) payload.hitl_breakpoints = data.hitlBreakpoints;
+      
+      return apiClient.patch(`/workspaces/${activeWorkspaceId}/agents/${agentType}`, payload);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["workspaces", activeWorkspaceId, "agents"] });
+    },
+  });
+}
+
+export function useUpdateProviderApiKey() {
+  const { activeWorkspaceId } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ providerId, apiKey }: { providerId: string; apiKey: string }) =>
+      apiClient.put(
+        `/workspaces/${activeWorkspaceId}/providers/${providerId}/api-key`,
+        { apiKey: apiKey }
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["workspaces", activeWorkspaceId, "agents"] });
+    },
+  });
+}
+
+function mapAgentConfigOut(raw: any, id: ConfigRailItem): AgentConfig {
+  if (!raw) return {
+    id,
+    provider: null,
+    model: null,
+    fallbackModel: null,
+    systemPrompt: null,
+    tools: null,
+    guardrails: null,
+    hitlBreakpoints: null,
+    apiKeyHint: null,
+  };
+  return {
+    id,
+    provider: raw.provider ?? null,
+    model: raw.model ?? null,
+    fallbackModel: raw.fallback_model ?? null,
+    systemPrompt: raw.system_prompt ?? null,
+    tools: raw.tools ?? null,
+    guardrails: raw.guardrails ?? null,
+    hitlBreakpoints: raw.hitl_breakpoints ?? null,
+    apiKeyHint: raw.api_key_hint ?? null,
+  };
+}

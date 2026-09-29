@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Loader2 } from "lucide-react";
 import { MetricCard } from "@/features/stats/metric-card";
 import { TrendChartStub } from "@/features/stats/trend-chart-stub";
 import { AgentBreakdownTable } from "@/features/stats/agent-breakdown-table";
-import { STUB_METRICS, type TimeRange } from "@/features/stats/use-stats";
+import { useStats, type TimeRange } from "@/features/stats/use-stats";
 import { cn } from "@/lib/utils";
 
 const TIME_RANGES: { id: TimeRange; label: string }[] = [
@@ -17,6 +17,7 @@ const TIME_RANGES: { id: TimeRange; label: string }[] = [
 
 export default function AgentStatsPage() {
   const [timeRange, setTimeRange] = useState<TimeRange>("7d");
+  const { data: statsData, isLoading, error } = useStats(timeRange);
 
   return (
     <div className="space-y-8 pb-12">
@@ -47,7 +48,7 @@ export default function AgentStatsPage() {
           ))}
           <select 
             className="bg-transparent text-xs font-medium text-[var(--fg-muted)] hover:text-[var(--fg-base)] px-2 py-1.5 focus:outline-none cursor-pointer"
-            defaultValue="custom"
+            value={TIME_RANGES.some(r => r.id === timeRange) ? "custom" : timeRange}
             onChange={(e) => {
               if (e.target.value !== "custom") setTimeRange(e.target.value as TimeRange);
             }}
@@ -60,29 +61,41 @@ export default function AgentStatsPage() {
         </div>
       </div>
 
-      {/* ── Headline Metric Cards ────────────────────────────────────── */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        {STUB_METRICS.map((metric) => (
-          <MetricCard key={metric.id} metric={metric} />
-        ))}
-      </div>
+      {isLoading ? (
+        <div className="flex items-center justify-center p-12">
+          <Loader2 className="animate-spin text-[var(--fg-muted)]" size={32} />
+        </div>
+      ) : error || !statsData ? (
+        <div className="p-4 text-sm text-[var(--color-danger)] bg-[var(--bg-surface)] border border-[var(--color-danger)] rounded">
+          Failed to load agent stats.
+        </div>
+      ) : (
+        <>
+          {/* ── Headline Metric Cards ────────────────────────────────────── */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {statsData.metrics.map((metric) => (
+              <MetricCard key={metric.id} metric={metric} />
+            ))}
+          </div>
 
-      {/* ── Trend Charts ─────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-        <TrendChartStub
-          title={`Resolution Rate (${timeRange})`}
-          description="Percentage of conversations resolved without human escalation."
-          variant="line"
-        />
-        <TrendChartStub
-          title={`Latency (p50/p95/p99, ${timeRange})`}
-          description="End-to-end response time across all agent turns."
-          variant="line"
-        />
-      </div>
+          {/* ── Trend Charts ─────────────────────────────────────────────── */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+            <TrendChartStub
+              title={`Resolution Rate (${timeRange})`}
+              description="Percentage of conversations resolved without human escalation."
+              variant="line"
+            />
+            <TrendChartStub
+              title={`Latency (p50/p95/p99, ${timeRange})`}
+              description="End-to-end response time across all agent turns."
+              variant="line"
+            />
+          </div>
 
-      {/* ── Per-Agent Breakdown ──────────────────────────────────────── */}
-      <AgentBreakdownTable />
+          {/* ── Per-Agent Breakdown ──────────────────────────────────────── */}
+          <AgentBreakdownTable stats={statsData.agentStats} />
+        </>
+      )}
 
       {/* ── External Link ────────────────────────────────────────────── */}
       <div className="flex justify-end mt-6">

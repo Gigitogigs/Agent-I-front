@@ -1,5 +1,6 @@
 import { AlertTriangle, LogOut, RotateCcw } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useAuth } from "@/hooks/use-auth";
 
 interface ScheduledDeletionViewProps {
   type: "workspace" | "account";
@@ -7,7 +8,7 @@ interface ScheduledDeletionViewProps {
 
 export function ScheduledDeletionView({ type }: ScheduledDeletionViewProps) {
   const [timeLeft, setTimeLeft] = useState("47 hours, 59 minutes");
-  const [isOwner, setIsOwner] = useState(true); // TODO: use real context
+  const { isOwner } = useAuth();
 
   useEffect(() => {
     const interval = setInterval(() => {

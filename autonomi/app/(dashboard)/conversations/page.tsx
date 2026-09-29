@@ -1,22 +1,22 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { MessageSquare, Search } from "lucide-react";
+import { MessageSquare, Search, Loader2 } from "lucide-react";
 import { EmptyState } from "@/components/shared/empty-state";
-import { SlideOver, ListPane } from "@/components/templates/list-detail/detail-panel";
+import { SlideOver } from "@/components/templates/list-detail/detail-panel";
 import { ConversationRow } from "@/features/conversations/conversation-row";
 import { ConversationDetail } from "@/features/conversations/conversation-detail";
 import {
-  STUB_CONVERSATIONS,
-  STUB_TRANSCRIPT,
   STATUS_TABS,
-  filterConversations,
+  useConversations,
+  useConversationDetail,
 } from "@/features/conversations/use-conversations";
-import type { Conversation, ConversationStatus } from "@/types";
+import type { ConversationStatus } from "@/types";
 import { cn } from "@/lib/utils";
 
+import { useAuth } from "@/hooks/use-auth";
+
 export default function ConversationsPage() {
-  const [conversations] = useState<Conversation[]>(STUB_CONVERSATIONS);
   const [activeTab, setActiveTab] = useState<ConversationStatus | "ALL">("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -31,7 +31,10 @@ export default function ConversationsPage() {
     }
   }, []);
 
-  const visible = filterConversations(conversations, activeTab, searchQuery);
+  const { activeWorkspaceId, isLoading: isAuthLoading } = useAuth();
+  const { data: conversations = [], isLoading, error } = useConversations(searchQuery, activeTab);
+  const { data: detailData, isLoading: detailLoading } = useConversationDetail(selectedId);
+
   const selected = conversations.find((c) => c.id === selectedId) ?? null;
 
   return (
@@ -44,10 +47,6 @@ export default function ConversationsPage() {
           {/* Status filter tabs */}
           <nav className="flex" role="tablist">
             {STATUS_TABS.map((tab) => {
-              const count =
-                tab.id === "ALL"
-                  ? conversations.length
-                  : conversations.filter((c) => c.status === tab.id).length;
               const active = activeTab === tab.id;
               return (
                 <button
@@ -65,18 +64,6 @@ export default function ConversationsPage() {
                   )}
                 >
                   {tab.label}
-                  {count > 0 && (
-                    <span
-                      className={cn(
-                        "text-[10px] px-1 py-0.5 rounded-sm tabular-nums",
-                        active
-                          ? "bg-[var(--fg-base)] text-[var(--bg-surface)]"
-                          : "bg-[var(--bg-muted)] text-[var(--fg-muted)]"
-                      )}
-                    >
-                      {count}
-                    </span>
-                  )}
                 </button>
               );
             })}
@@ -107,19 +94,35 @@ export default function ConversationsPage() {
           <div className="w-16 shrink-0 text-right">Time</div>
         </div>
 
-        {visible.length === 0 ? (
+        {isAuthLoading ? (
+          <div className="flex items-center justify-center p-8">
+            <Loader2 className="animate-spin text-[var(--fg-muted)]" size={24} />
+          </div>
+        ) : !activeWorkspaceId ? (
+          <div className="flex items-center justify-center p-8 text-[var(--fg-muted)]">
+            No active workspace found.
+          </div>
+        ) : isLoading ? (
+          <div className="flex items-center justify-center p-8">
+            <Loader2 className="animate-spin text-[var(--fg-muted)]" size={24} />
+          </div>
+        ) : error ? (
+          <div className="p-4 text-sm text-[var(--color-danger)] text-center">
+            Failed to load conversations.
+          </div>
+        ) : conversations.length === 0 ? (
           <EmptyState
             icon={MessageSquare}
-            title={searchQuery ? "No matches found" : "No conversations yet"}
+            title={searchQuery || activeTab !== "ALL" ? "No matches found" : "No conversations yet"}
             description={
-              searchQuery
-                ? "Try adjusting your search terms."
+              searchQuery || activeTab !== "ALL"
+                ? "Try adjusting your search terms or filters."
                 : "When agents chat with your customers, they'll show up here."
             }
           />
         ) : (
           <div className="pb-4">
-            {visible.map((c) => (
+            {conversations.map((c) => (
               <ConversationRow
                 key={c.id}
                 conversation={c}
@@ -136,13 +139,19 @@ export default function ConversationsPage() {
         onClose={() => setSelectedId(null)}
         title={selected ? `Customer ${selected.customerRef} · ${selected.customerName || "Unknown"}` : undefined}
       >
-        {selected && (
+        {detailLoading ? (
+          <div className="flex items-center justify-center h-full p-8">
+            <Loader2 className="animate-spin text-[var(--fg-muted)]" size={24} />
+          </div>
+        ) : selected && detailData ? (
           <ConversationDetail
             conversation={selected}
-            // In a real app, this would be fetched based on selected.id.
-            // Using stub data for now.
-            transcript={STUB_TRANSCRIPT}
+            transcript={detailData.transcript}
           />
+        ) : (
+          <div className="flex items-center justify-center h-full p-8 text-sm text-[var(--fg-muted)]">
+            Failed to load conversation details.
+          </div>
         )}
       </SlideOver>
     </div>

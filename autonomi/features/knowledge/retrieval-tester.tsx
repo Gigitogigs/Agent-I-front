@@ -2,43 +2,21 @@
 
 import { useState } from "react";
 import { Play, Search } from "lucide-react";
-
-interface RetrievalResult {
-  docName: string;
-  chunk: number;
-  score: number;
-  excerpt: string;
-}
+import { useTestRetrieval } from "@/features/knowledge/use-knowledge";
 
 export function RetrievalTester() {
   const [query, setQuery] = useState("");
-  const [isTesting, setIsTesting] = useState(false);
-  const [results, setResults] = useState<RetrievalResult[] | null>(null);
+  const testMutation = useTestRetrieval();
 
   function handleTest(e: React.FormEvent) {
     e.preventDefault();
     if (!query.trim()) return;
 
-    setIsTesting(true);
-    // Simulate API call
-    setTimeout(() => {
-      setResults([
-        {
-          docName: "return-policy.pdf",
-          chunk: 3,
-          score: 0.91,
-          excerpt: "Items may be returned within 30 days of receipt. Products must be in original condition.",
-        },
-        {
-          docName: "faq-billing.md",
-          chunk: 1,
-          score: 0.74,
-          excerpt: "Refunds typically take 3-5 business days to process and appear on your statement.",
-        },
-      ]);
-      setIsTesting(false);
-    }, 600);
+    testMutation.mutate({ query });
   }
+
+  const results = testMutation.data;
+  const isTesting = testMutation.isPending;
 
   return (
     <div className="border border-[var(--border-hairline)] bg-[var(--bg-surface)] rounded-lg overflow-hidden mt-6">
@@ -65,21 +43,28 @@ export function RetrievalTester() {
           </button>
         </form>
 
+        {testMutation.isError && (
+          <div className="p-3 text-sm text-[var(--color-danger)] bg-[var(--bg-surface)] border border-[var(--color-danger)] rounded">
+            Failed to test retrieval.
+          </div>
+        )}
+
         {results && (
           <div className="bg-[var(--bg-subtle)] border border-[var(--border-hairline)] rounded p-4 space-y-3">
-            <h4 className="text-xs font-semibold text-[var(--fg-muted)] uppercase tracking-wider">Results:</h4>
+            <h4 className="text-xs font-semibold text-[var(--fg-muted)] uppercase tracking-wider">
+              {results.length === 0 ? "No results found." : "Results:"}
+            </h4>
             <div className="space-y-3">
               {results.map((r, i) => (
                 <div key={i} className="text-sm">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="font-medium text-[var(--fg-base)]">{i + 1}. {r.docName}</span>
-                    <span className="text-xs text-[var(--fg-muted)]">(chunk {r.chunk})</span>
+                    <span className="font-medium text-[var(--fg-base)]">{i + 1}. {r.source}</span>
                     <span className="text-xs px-1.5 py-0.5 rounded bg-[var(--border-hairline)] text-[var(--fg-base)] ml-auto">
                       score {r.score.toFixed(2)}
                     </span>
                   </div>
                   <p className="text-[var(--fg-muted)] pl-4 border-l-2 border-[var(--border-hairline)] italic text-xs">
-                    "{r.excerpt}"
+                    "{r.chunk}"
                   </p>
                 </div>
               ))}

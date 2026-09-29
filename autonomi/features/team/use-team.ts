@@ -1,52 +1,73 @@
-export type Role = "Owner" | "Admin" | "Operator" | "Read-only";
-export type MemberStatus = "Active" | "Pending";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiClient } from "@/lib/api-client";
+import { useAuth } from "@/hooks/use-auth";
 
-export interface TeamMember {
-  id: string;
-  name: string;
+export interface MemberOut {
+  id: string | null;
+  name: string | null;
   email: string;
-  role: Role;
-  status: MemberStatus;
-  lastActive?: string; // e.g. "Just now", "2h ago", undefined if pending
+  role: string;
+  status: string;
+  last_active_at: string | null;
 }
 
-export const STUB_TEAM: TeamMember[] = [
-  {
-    id: "m1",
-    name: "Gigito",
-    email: "gigito@example.com",
-    role: "Owner",
-    status: "Active",
-    lastActive: "Just now",
-  },
-  {
-    id: "m2",
-    name: "Jane K.",
-    email: "jane@example.com",
-    role: "Admin",
-    status: "Active",
-    lastActive: "2h ago",
-  },
-  {
-    id: "m3",
-    name: "Sam O.",
-    email: "sam@example.com",
-    role: "Operator",
-    status: "Active",
-    lastActive: "1d ago",
-  },
-  {
-    id: "m4",
-    name: "",
-    email: "m.wanjiru@example.com",
-    role: "Operator",
-    status: "Pending",
-  }
-];
+export function useMembers() {
+  const { activeWorkspaceId } = useAuth();
+  return useQuery<MemberOut[]>({
+    queryKey: ['workspaces', activeWorkspaceId, 'members'],
+    queryFn: () =>
+      apiClient.get<MemberOut[]>(`/workspaces/${activeWorkspaceId}/members`),
+    enabled: !!activeWorkspaceId,
+  });
+}
+
+export function useInviteMember() {
+  const queryClient = useQueryClient();
+  const { activeWorkspaceId } = useAuth();
+  return useMutation({
+    mutationFn: ({ email, role }: { email: string; role: string }) =>
+      apiClient.post<MemberOut>(`/workspaces/${activeWorkspaceId}/members`, { email, role }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workspaces', activeWorkspaceId, 'members'] });
+    },
+  });
+}
+
+export function useUpdateMemberRole() {
+  const queryClient = useQueryClient();
+  const { activeWorkspaceId } = useAuth();
+  return useMutation({
+    mutationFn: ({ memberId, role }: { memberId: string; role: string }) =>
+      apiClient.patch(`/workspaces/${activeWorkspaceId}/members/${memberId}`, { role }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workspaces', activeWorkspaceId, 'members'] });
+    },
+  });
+}
+
+export function useRemoveMember() {
+  const queryClient = useQueryClient();
+  const { activeWorkspaceId } = useAuth();
+  return useMutation({
+    mutationFn: (memberId: string) =>
+      apiClient.delete(`/workspaces/${activeWorkspaceId}/members/${memberId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workspaces', activeWorkspaceId, 'members'] });
+    },
+  });
+}
+
+export function useResendInvite() {
+  const { activeWorkspaceId } = useAuth();
+  return useMutation({
+    mutationFn: (memberId: string) =>
+      apiClient.post(`/workspaces/${activeWorkspaceId}/members/${memberId}/resend-invite`),
+  });
+}
 
 export const ROLE_PERMISSIONS = [
-  { role: "Owner", approvals: "✓", config: "✓", billing: "✓", team: "✓", deleteWs: "✓" },
-  { role: "Admin", approvals: "✓", config: "✓", billing: "✓", team: "✓", deleteWs: "—" },
-  { role: "Operator", approvals: "✓", config: "—", billing: "—", team: "—", deleteWs: "—" },
-  { role: "Read-only", approvals: "view only", config: "—", billing: "—", team: "—", deleteWs: "—" },
+  { role: "owner", approvals: "✓", config: "✓", billing: "✓", team: "✓", deleteWs: "✓" },
+  { role: "admin", approvals: "✓", config: "✓", billing: "✓", team: "✓", deleteWs: "—" },
+  { role: "operator", approvals: "✓", config: "—", billing: "—", team: "—", deleteWs: "—" },
+  { role: "read-only", approvals: "view only", config: "—", billing: "—", team: "—", deleteWs: "—" },
 ];
