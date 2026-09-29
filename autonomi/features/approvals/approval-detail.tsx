@@ -22,8 +22,10 @@ export function ApprovalDetail({ approval, onApprove, onReject, isApprovePending
   const [reason, setReason] = useState("");
   const [reasonError, setReasonError] = useState("");
   const [rejectError, setRejectError] = useState("");
+  const [localApprovePending, setLocalApprovePending] = useState(false);
 
   const isPending = approval.status === "PENDING";
+  const approveDisabled = isApprovePending || isRejectPending || localApprovePending;
 
   function handleRejectClick() {
     setRejecting(true);
@@ -138,8 +140,11 @@ export function ApprovalDetail({ approval, onApprove, onReject, isApprovePending
             <div className="flex items-center gap-3">
               <button
                 id="approve-btn"
-                onClick={() => onApprove(approval.id)}
-                disabled={isApprovePending || isRejectPending}
+                onClick={() => {
+                  setLocalApprovePending(true);
+                  onApprove(approval.id);
+                }}
+                disabled={approveDisabled}
                 className="
                   flex-1 py-2 text-xs font-semibold
                   bg-[var(--fg-base)] text-[var(--bg-surface)]
@@ -152,7 +157,7 @@ export function ApprovalDetail({ approval, onApprove, onReject, isApprovePending
               <button
                 id="reject-btn"
                 onClick={handleRejectClick}
-                disabled={isApprovePending || isRejectPending}
+                disabled={approveDisabled}
                 className="
                   flex-1 py-2 text-xs font-semibold
                   border border-[var(--border-hairline)]

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { CheckCircle, Loader2 } from "lucide-react";
 
 import { ListDetailLayout } from "@/components/templates/list-detail/list-detail-layout";
@@ -27,11 +27,25 @@ export default function ApprovalsPage() {
   const rejectMutation = useRejectAction();
 
   // Auto-select first item when data loads and nothing is selected
+  const lastAutoSelectTab = useRef<ApprovalStatus | "ALL" | null>(null);
+
   useEffect(() => {
-    if (approvals.length > 0 && !selectedId && !isLoading) {
+    // Only auto-select when we switch tabs and load new data, not every time selectedId is null
+    if (approvals.length > 0 && !selectedId && !isLoading && lastAutoSelectTab.current !== activeTab) {
       setSelectedId(approvals[0].id);
+      lastAutoSelectTab.current = activeTab;
     }
-  }, [approvals, selectedId, isLoading]);
+  }, [approvals, selectedId, isLoading, activeTab]);
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape' && selectedId) {
+        setSelectedId(null);
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedId]);
 
   const selected = approvals.find((a) => a.id === selectedId) ?? null;
 

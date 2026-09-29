@@ -116,7 +116,7 @@ export default function SignupPage() {
                 htmlFor="signup-email"
                 className="block text-xs font-medium text-[var(--fg-muted)]"
               >
-                Email
+                Email address
               </label>
               <input
                 id="signup-email"
@@ -158,6 +158,7 @@ export default function SignupPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 onBlur={validatePassword}
+                aria-describedby={passwordError ? "signup-password-error" : undefined}
                 className="
                   w-full px-3 py-2 text-sm
                   bg-[var(--bg-subtle)] text-[var(--fg-base)]
@@ -173,7 +174,7 @@ export default function SignupPage() {
                 }}
               />
               {passwordError && (
-                <p className="text-xs text-[var(--color-danger)]">{passwordError}</p>
+                <p id="signup-password-error" className="text-xs text-[var(--color-danger)]">{passwordError}</p>
               )}
             </div>
 

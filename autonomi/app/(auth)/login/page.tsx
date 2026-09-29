@@ -29,7 +29,12 @@ export default function LoginPage() {
     onSuccess: (data: LoginResponse) => {
       tokenStore.set(data.access_token, data.expires_in);
       axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${data.access_token}`;
-      queryClient.setQueryData(['auth', 'me'], data.user);
+      // Invalidate (don't seed) the auth/me cache so useAuth refetches the full
+      // UserOut from the server — including the `memberships` array that
+      // initialises activeWorkspaceId.  Seeding data.user here was the bug:
+      // the login response omits `memberships`, so activeWorkspaceId stayed
+      // undefined and all workspace-scoped queries remained permanently disabled.
+      queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
       router.push("/");
     },
     onError: (err: any) => {
@@ -110,6 +115,7 @@ export default function LoginPage() {
                 </label>
                 <Link
                   href="#"
+                  tabIndex={-1}
                   className="text-xs text-[var(--fg-muted)] hover:text-[var(--fg-base)] underline-offset-2 hover:underline transition-colors"
                 >
                   Forgot password?

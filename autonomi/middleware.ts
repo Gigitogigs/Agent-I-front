@@ -7,8 +7,11 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const hasRefreshCookie = request.cookies.has(REFRESH_COOKIE);
 
+  const publicPaths = ['/login', '/signup'];
+  const isPublicPath = publicPaths.some(p => pathname.startsWith(p));
+
   // If trying to access a protected route without a session → redirect to /login
-  const isProtected = pathname.startsWith('/') && !pathname.startsWith('/login') && !pathname.startsWith('/_next') && !pathname.startsWith('/api');
+  const isProtected = pathname.startsWith('/') && !isPublicPath && !pathname.startsWith('/_next') && !pathname.startsWith('/api');
   
   if (isProtected && !hasRefreshCookie) {
     const loginUrl = new URL('/login', request.url);
@@ -16,8 +19,8 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // If already logged in and trying to visit /login → redirect to home
-  if (pathname.startsWith('/login') && hasRefreshCookie) {
+  // If already logged in and trying to visit an auth page → redirect to home
+  if (isPublicPath && hasRefreshCookie) {
     return NextResponse.redirect(new URL('/', request.url));
   }
 

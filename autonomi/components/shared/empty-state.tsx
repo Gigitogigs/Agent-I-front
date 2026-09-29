@@ -1,11 +1,17 @@
+import React from "react";
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
+
+interface EmptyStateAction {
+  label: string;
+  onClick: () => void;
+}
 
 interface EmptyStateProps {
   icon?: LucideIcon;
   title: string;
   description?: string;
-  action?: React.ReactNode;
+  action?: EmptyStateAction;
   className?: string;
 }
 
@@ -26,7 +32,16 @@ export function EmptyState({ icon: Icon, title, description, action, className }
       {description && (
         <p className="text-xs text-[var(--fg-muted)] max-w-xs mb-4">{description}</p>
       )}
-      {action}
+      {action && (
+        <button
+          type="button"
+          onClick={action.onClick}
+          className="px-4 py-2 text-xs font-medium bg-[var(--fg-base)] text-[var(--bg-surface)] hover:opacity-90 transition-opacity"
+          style={{ borderRadius: "var(--radius-interactive)" }}
+        >
+          {action.label}
+        </button>
+      )}
     </div>
   );
 }
