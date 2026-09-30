@@ -4,6 +4,8 @@ import { useState } from "react";
 import { ChevronsUpDown, Building2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
+import { AddWorkspaceModal } from "@/components/workspace/add-workspace-modal";
+import { Plus } from "lucide-react";
 
 interface WorkspaceSwitcherProps {
   collapsed: boolean;
@@ -12,6 +14,7 @@ interface WorkspaceSwitcherProps {
 export default function WorkspaceSwitcher({ collapsed }: WorkspaceSwitcherProps) {
   const { memberships, activeWorkspaceId, setActiveWorkspace } = useAuth();
   const [open, setOpen] = useState(false);
+  const [addModalOpen, setAddModalOpen] = useState(false);
 
   const activeMembership = memberships.find((m) => m.workspace_id === activeWorkspaceId)
     ?? memberships[0];
@@ -21,12 +24,10 @@ export default function WorkspaceSwitcher({ collapsed }: WorkspaceSwitcherProps)
   return (
     <div className="relative">
       <button
-        onClick={() => hasMultiple && setOpen((o) => !o)}
+        onClick={() => setOpen((o) => !o)}
         className={cn(
           "w-full flex items-center gap-2 p-3 text-left",
-          "text-[var(--fg-base)] transition-colors",
-          hasMultiple && "hover:bg-[var(--bg-muted)] cursor-pointer",
-          !hasMultiple && "cursor-default"
+          "text-[var(--fg-base)] transition-colors hover:bg-[var(--bg-muted)] cursor-pointer"
         )}
         title={collapsed ? (activeMembership?.workspace_name ?? "Workspace") : undefined}
       >
@@ -43,15 +44,13 @@ export default function WorkspaceSwitcher({ collapsed }: WorkspaceSwitcherProps)
                 {activeMembership?.role ?? ""}
               </p>
             </div>
-            {hasMultiple && (
-              <ChevronsUpDown size={12} className="text-[var(--fg-subtle)] shrink-0" />
-            )}
+            <ChevronsUpDown size={12} className="text-[var(--fg-subtle)] shrink-0" />
           </>
         )}
       </button>
 
-      {/* Dropdown — only rendered when open and there are multiple workspaces */}
-      {open && hasMultiple && (
+      {/* Dropdown — only rendered when open */}
+      {open && (
         <>
           {/* Click-away overlay */}
           <div
@@ -91,9 +90,23 @@ export default function WorkspaceSwitcher({ collapsed }: WorkspaceSwitcherProps)
                 </div>
               </button>
             ))}
+            
+            <div className="h-px bg-[var(--border-hairline)] my-1 mx-2" />
+            <button
+              onClick={() => {
+                setOpen(false);
+                setAddModalOpen(true);
+              }}
+              className="w-full flex items-center gap-2 px-3 py-2 text-left text-xs text-[var(--fg-base)] hover:bg-[var(--bg-muted)] transition-colors"
+            >
+              <Plus size={12} className="text-[var(--fg-muted)] shrink-0" />
+              <span className="font-medium">New Workspace</span>
+            </button>
           </div>
         </>
       )}
+
+      <AddWorkspaceModal open={addModalOpen} onClose={() => setAddModalOpen(false)} />
     </div>
   );
 }
