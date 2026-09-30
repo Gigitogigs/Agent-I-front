@@ -156,7 +156,6 @@ export interface HITLBreakpoint {
 export interface Profile {
   name: string;
   email: string;
-  timezone: string;
 }
 
 export interface NotificationSettings {

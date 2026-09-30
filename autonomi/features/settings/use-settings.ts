@@ -7,7 +7,6 @@ export type SettingsRailItem = "profile" | "notifications" | "billing" | "integr
 export interface UserProfile {
   name: string;
   email: string;
-  timezone: string;
   avatarUrl?: string;
 }
 
@@ -54,17 +53,6 @@ export interface Integration {
   last_checked_at: string | null;
   created_at: string;
 }
-
-export const TIMEZONES = [
-  "UTC",
-  "America/New_York",
-  "America/Los_Angeles",
-  "Europe/London",
-  "Europe/Paris",
-  "Africa/Nairobi",
-  "Asia/Tokyo",
-  "Australia/Sydney",
-];
 
 import type { UserOut } from "@/hooks/use-auth";
 
