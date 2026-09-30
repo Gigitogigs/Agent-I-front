@@ -120,7 +120,7 @@ export function NotificationsTab() {
       <div>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold text-[var(--fg-base)]">Connected Channels</h3>
-          <button onClick={() => openCreateModal("slack")} className="text-xs font-medium bg-[var(--fg-base)] text-[var(--bg-base)] px-3 py-1.5 rounded hover:opacity-90 flex items-center gap-1">
+          <button onClick={() => openCreateModal("slack")} className="text-xs font-medium bg-[var(--fg-base)] text-[var(--bg-surface)] px-3 py-1.5 rounded hover:opacity-90 flex items-center gap-1">
             <Plus size={14} /> Add Channel
           </button>
         </div>
