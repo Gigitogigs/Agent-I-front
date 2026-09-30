@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search, Plus, MoreVertical } from "lucide-react";
+import { Search, Plus, MoreVertical, X, Loader2 } from "lucide-react";
 import { cn, relativeTime } from "@/lib/utils";
 import { useMembers, useUpdateMemberRole, useRemoveMember, useResendInvite, useInviteMember, ROLE_PERMISSIONS } from "@/features/team/use-team";
 import { useAuth } from "@/hooks/use-auth";
@@ -17,10 +17,21 @@ export default function TeamPage() {
   const resendInviteMutation = useResendInvite();
   const inviteMutation = useInviteMember();
 
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState("operator");
+
   const handleInvite = () => {
-    const email = window.prompt("Enter the email address of the user to invite:");
-    if (email && email.trim()) {
-      inviteMutation.mutate({ email: email.trim(), role: "operator" });
+    setInviteEmail("");
+    setInviteRole("operator");
+    setIsInviteModalOpen(true);
+  };
+
+  const submitInvite = () => {
+    if (inviteEmail && inviteEmail.trim()) {
+      inviteMutation.mutate({ email: inviteEmail.trim(), role: inviteRole }, {
+        onSuccess: () => setIsInviteModalOpen(false)
+      });
     }
   };
 
@@ -190,6 +201,63 @@ export default function TeamPage() {
         </div>
 
       </div>
+
+      {/* Invite Modal */}
+      {isInviteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-[var(--bg-surface)] w-full max-w-md rounded-lg shadow-xl overflow-hidden border border-[var(--border-hairline)] flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-[var(--border-hairline)]">
+              <h2 className="text-lg font-semibold text-[var(--fg-base)]">Invite Member</h2>
+              <button onClick={() => setIsInviteModalOpen(false)} className="text-[var(--fg-muted)] hover:text-[var(--fg-base)] transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-[var(--fg-base)] mb-1">Email Address</label>
+                <input
+                  type="email"
+                  required
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") submitInvite(); }}
+                  className="w-full px-3 py-2 text-sm bg-transparent border border-[var(--border-hairline)] rounded focus:outline-none focus:border-[var(--fg-base)] text-[var(--fg-base)] transition-colors"
+                  placeholder="colleague@example.com"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[var(--fg-base)] mb-1">Role</label>
+                <select
+                  value={inviteRole}
+                  onChange={(e) => setInviteRole(e.target.value)}
+                  className="w-full px-3 py-2 text-sm bg-transparent border border-[var(--border-hairline)] rounded focus:outline-none focus:border-[var(--fg-base)] text-[var(--fg-base)] transition-colors"
+                >
+                  <option value="admin">Admin</option>
+                  <option value="operator">Operator</option>
+                  <option value="read-only">Read-only</option>
+                </select>
+              </div>
+            </div>
+            <div className="p-4 border-t border-[var(--border-hairline)] bg-[var(--bg-subtle)] flex justify-end gap-3">
+              <button
+                onClick={() => setIsInviteModalOpen(false)}
+                className="px-4 py-2 text-sm font-medium text-[var(--fg-base)] border border-[var(--border-hairline)] rounded hover:bg-[var(--bg-surface)] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitInvite}
+                disabled={!inviteEmail.trim() || inviteMutation.isPending}
+                className="px-4 py-2 text-sm font-medium text-[var(--bg-surface)] bg-[var(--fg-base)] rounded hover:opacity-90 transition-opacity flex items-center gap-2 disabled:opacity-50"
+              >
+                {inviteMutation.isPending && <Loader2 size={14} className="animate-spin" />}
+                Send Invite
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
