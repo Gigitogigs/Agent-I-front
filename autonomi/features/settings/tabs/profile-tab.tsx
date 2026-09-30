@@ -180,7 +180,7 @@ export function ProfileTab() {
           </div>
           <button 
             onClick={() => setIsDeleteModalOpen(true)}
-            className="text-sm font-medium text-[var(--color-danger)] border border-[var(--color-danger)] bg-transparent px-4 py-2 rounded hover:bg-[var(--color-danger)] hover:text-white transition-colors whitespace-nowrap"
+            className="text-sm font-medium text-white bg-[var(--color-danger)] px-4 py-2 rounded hover:opacity-90 transition-opacity w-40 text-center"
           >
             Delete workspace
           </button>
@@ -198,7 +198,7 @@ export function ProfileTab() {
           </div>
           <button 
             onClick={() => setIsDeleteAccountModalOpen(true)}
-            className="text-sm font-medium text-white bg-[var(--color-danger)] px-4 py-2 rounded hover:opacity-90 transition-opacity whitespace-nowrap"
+            className="text-sm font-medium text-white bg-[var(--color-danger)] px-4 py-2 rounded hover:opacity-90 transition-opacity w-40 text-center"
           >
             Delete account
           </button>
