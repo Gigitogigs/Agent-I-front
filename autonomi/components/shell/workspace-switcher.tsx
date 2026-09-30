@@ -7,6 +7,29 @@ import { useAuth } from "@/hooks/use-auth";
 import { AddWorkspaceModal } from "@/components/workspace/add-workspace-modal";
 import { RenameWorkspaceModal } from "@/components/workspace/rename-workspace-modal";
 
+const WORKSPACE_COLORS = [
+  "bg-blue-500/10 text-blue-500 border-blue-500/20",
+  "bg-purple-500/10 text-purple-500 border-purple-500/20",
+  "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+  "bg-amber-500/10 text-amber-500 border-amber-500/20",
+  "bg-pink-500/10 text-pink-500 border-pink-500/20",
+  "bg-rose-500/10 text-rose-500 border-rose-500/20",
+  "bg-cyan-500/10 text-cyan-500 border-cyan-500/20",
+  "bg-indigo-500/10 text-indigo-500 border-indigo-500/20",
+];
+
+function getWorkspaceColor(id: string) {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = id.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return WORKSPACE_COLORS[Math.abs(hash) % WORKSPACE_COLORS.length];
+}
+
+function getInitials(name: string) {
+  return name.charAt(0).toUpperCase();
+}
+
 interface WorkspaceSwitcherProps {
   collapsed: boolean;
 }
@@ -34,8 +57,11 @@ export default function WorkspaceSwitcher({ collapsed }: WorkspaceSwitcherProps)
         )}
         title={collapsed ? (activeMembership?.workspace_name ?? "Workspace") : undefined}
       >
-        <div className="w-7 h-7 rounded flex items-center justify-center bg-[var(--bg-muted)] shrink-0">
-          <Building2 size={14} className="text-[var(--fg-muted)]" />
+        <div className={cn(
+          "w-7 h-7 rounded flex items-center justify-center border shrink-0 font-medium text-xs shadow-sm",
+          activeMembership ? getWorkspaceColor(activeMembership.workspace_id) : "bg-[var(--bg-muted)] border-transparent"
+        )}>
+          {activeMembership ? getInitials(activeMembership.workspace_name) : <Building2 size={14} className="text-[var(--fg-muted)]" />}
         </div>
         {!collapsed && (
           <>
@@ -81,18 +107,25 @@ export default function WorkspaceSwitcher({ collapsed }: WorkspaceSwitcherProps)
                   }}
                   className="flex-1 flex items-center gap-2 text-left min-w-0 pr-2"
                 >
-                  <Check
-                    size={11}
-                    className={cn(
-                      "shrink-0",
-                      m.workspace_id === activeWorkspaceId
-                        ? "opacity-100"
-                        : "opacity-0"
-                    )}
-                  />
-                  <div className="min-w-0 flex-1">
+                  <div className="w-4 flex items-center justify-center shrink-0">
+                    <Check
+                      size={11}
+                      className={cn(
+                        m.workspace_id === activeWorkspaceId
+                          ? "opacity-100"
+                          : "opacity-0"
+                      )}
+                    />
+                  </div>
+                  <div className={cn(
+                    "w-6 h-6 rounded flex items-center justify-center border shrink-0 font-medium text-[10px]",
+                    getWorkspaceColor(m.workspace_id)
+                  )}>
+                    {getInitials(m.workspace_name)}
+                  </div>
+                  <div className="min-w-0 flex-1 ml-1">
                     <p className="font-medium truncate">{m.workspace_name}</p>
-                    <p className="text-[var(--fg-muted)] capitalize">{m.role}</p>
+                    <p className="text-[var(--fg-muted)] capitalize text-[10px]">{m.role}</p>
                   </div>
                 </button>
                 {m.role === "owner" && (
