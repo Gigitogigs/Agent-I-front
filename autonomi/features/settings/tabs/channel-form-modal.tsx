@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { X, Loader2 } from "lucide-react";
 import type { NotificationChannel } from "../use-settings";
+import { NotificationSetupGuide } from "./notification-setup-guide";
 
 export type ConfigMap = {
   slack: { webhook_url: string };
@@ -182,6 +183,8 @@ export function ChannelFormModal({ isOpen, onClose, onSubmit, mode, initialData,
                 <option value="email">Email</option>
               </select>
             </div>
+
+            <NotificationSetupGuide channelType={type} />
 
             {(type === "slack" || type === "teams" || type === "discord") && (
               <div>
