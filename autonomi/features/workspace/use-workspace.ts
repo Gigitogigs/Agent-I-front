@@ -12,3 +12,16 @@ export const useCreateWorkspace = () => {
     }
   });
 };
+
+export const useRenameWorkspace = () => {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ workspaceId, name }: { workspaceId: string; name: string }) => 
+      apiClient.patch<{ id: string; name: string }>(`/workspaces/${workspaceId}`, { name }),
+    onSuccess: () => {
+      // Invalidate auth so the sidebar workspace list updates
+      qc.invalidateQueries({ queryKey: ["auth", "me"] });
+    }
+  });
+};

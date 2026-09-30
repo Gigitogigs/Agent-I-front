@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronsUpDown, Building2, Check } from "lucide-react";
+import { ChevronsUpDown, Building2, Check, Plus, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { AddWorkspaceModal } from "@/components/workspace/add-workspace-modal";
-import { Plus } from "lucide-react";
+import { RenameWorkspaceModal } from "@/components/workspace/rename-workspace-modal";
 
 interface WorkspaceSwitcherProps {
   collapsed: boolean;
@@ -15,6 +15,9 @@ export default function WorkspaceSwitcher({ collapsed }: WorkspaceSwitcherProps)
   const { memberships, activeWorkspaceId, setActiveWorkspace } = useAuth();
   const [open, setOpen] = useState(false);
   const [addModalOpen, setAddModalOpen] = useState(false);
+  const [renameModalOpen, setRenameModalOpen] = useState(false);
+  const [renameWorkspaceId, setRenameWorkspaceId] = useState("");
+  const [renameWorkspaceName, setRenameWorkspaceName] = useState("");
 
   const activeMembership = memberships.find((m) => m.workspace_id === activeWorkspaceId)
     ?? memberships[0];
@@ -63,32 +66,51 @@ export default function WorkspaceSwitcher({ collapsed }: WorkspaceSwitcherProps)
             "top-full"
           )}>
             {memberships.map((m) => (
-              <button
+              <div
                 key={m.workspace_id}
-                onClick={() => {
-                  setActiveWorkspace(m.workspace_id);
-                  setOpen(false);
-                }}
                 className={cn(
-                  "w-full flex items-center gap-2 px-3 py-2 text-left text-xs",
-                  "hover:bg-[var(--bg-muted)] transition-colors",
+                  "w-full flex items-center justify-between px-3 py-2 text-xs",
+                  "hover:bg-[var(--bg-muted)] transition-colors group",
                   m.workspace_id === activeWorkspaceId && "text-[var(--fg-base)]"
                 )}
               >
-                <Check
-                  size={11}
-                  className={cn(
-                    "shrink-0",
-                    m.workspace_id === activeWorkspaceId
-                      ? "opacity-100"
-                      : "opacity-0"
-                  )}
-                />
-                <div className="min-w-0">
-                  <p className="font-medium truncate">{m.workspace_name}</p>
-                  <p className="text-[var(--fg-muted)] capitalize">{m.role}</p>
-                </div>
-              </button>
+                <button
+                  onClick={() => {
+                    setActiveWorkspace(m.workspace_id);
+                    setOpen(false);
+                  }}
+                  className="flex-1 flex items-center gap-2 text-left min-w-0 pr-2"
+                >
+                  <Check
+                    size={11}
+                    className={cn(
+                      "shrink-0",
+                      m.workspace_id === activeWorkspaceId
+                        ? "opacity-100"
+                        : "opacity-0"
+                    )}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium truncate">{m.workspace_name}</p>
+                    <p className="text-[var(--fg-muted)] capitalize">{m.role}</p>
+                  </div>
+                </button>
+                {m.role === "owner" && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setRenameWorkspaceId(m.workspace_id);
+                      setRenameWorkspaceName(m.workspace_name);
+                      setRenameModalOpen(true);
+                      setOpen(false);
+                    }}
+                    className="p-1.5 rounded opacity-0 group-hover:opacity-100 hover:bg-[var(--bg-subtle)] text-[var(--fg-muted)] hover:text-[var(--fg-base)] transition-all shrink-0"
+                    title="Rename Workspace"
+                  >
+                    <Pencil size={12} />
+                  </button>
+                )}
+              </div>
             ))}
             
             <div className="h-px bg-[var(--border-hairline)] my-1 mx-2" />
@@ -107,6 +129,14 @@ export default function WorkspaceSwitcher({ collapsed }: WorkspaceSwitcherProps)
       )}
 
       <AddWorkspaceModal open={addModalOpen} onClose={() => setAddModalOpen(false)} />
+      {renameWorkspaceId && (
+        <RenameWorkspaceModal
+          open={renameModalOpen}
+          onClose={() => setRenameModalOpen(false)}
+          workspaceId={renameWorkspaceId}
+          initialName={renameWorkspaceName}
+        />
+      )}
     </div>
   );
 }
