@@ -114,6 +114,26 @@ export function useUpdateNotificationChannel() {
   });
 }
 
+export function useDeleteNotificationChannel() {
+  const queryClient = useQueryClient();
+  const { activeWorkspaceId } = useAuth();
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiClient.delete(`/workspaces/${activeWorkspaceId}/settings/notifications/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["workspaces", activeWorkspaceId, "settings", "notifications"] });
+    },
+  });
+}
+
+export function useTestNotificationChannel() {
+  const { activeWorkspaceId } = useAuth();
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiClient.post(`/workspaces/${activeWorkspaceId}/settings/notifications/${id}/test`),
+  });
+}
+
 // Billing Hooks
 export function useBilling() {
   const { activeWorkspaceId } = useAuth();
