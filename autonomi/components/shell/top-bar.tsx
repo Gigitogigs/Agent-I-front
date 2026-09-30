@@ -4,9 +4,13 @@ import Link from "next/link";
 import { Search, Sun, Moon } from "lucide-react";
 import { useTheme } from "./theme-provider";
 import NotificationsCenter from "./notifications-center";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function TopBar() {
   const { theme, toggle } = useTheme();
+  const { user } = useAuth();
+  
+  const initial = user?.name ? user.name.charAt(0).toUpperCase() : "U";
 
   return (
     <header className="flex items-center justify-between h-12 px-4 shrink-0 bg-[var(--bg-surface)] border-b border-[var(--border-hairline)]">
@@ -44,9 +48,14 @@ export default function TopBar() {
         <Link href="/settings">
           <button
             id="account-avatar"
-            className="w-7 h-7 rounded-full bg-[var(--color-gray-300)] dark:bg-[var(--color-gray-700)] flex items-center justify-center text-xs font-medium text-[var(--fg-base)] hover:opacity-80 transition-opacity cursor-pointer"
+            className="w-7 h-7 rounded-full bg-[var(--color-gray-300)] dark:bg-[var(--color-gray-700)] flex items-center justify-center text-xs font-medium text-[var(--fg-base)] hover:opacity-80 transition-opacity cursor-pointer overflow-hidden"
+            title={user?.name || "Account"}
           >
-            A
+            {user?.avatarUrl ? (
+              <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+            ) : (
+              initial
+            )}
           </button>
         </Link>
       </div>

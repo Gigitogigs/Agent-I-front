@@ -6,6 +6,7 @@ export interface MemberOut {
   id: string | null;
   name: string | null;
   email: string;
+  avatar_url: string | null;
   role: string;
   status: string;
   last_active_at: string | null;

@@ -84,7 +84,18 @@ export default function TeamPage() {
               {filteredMembers.map((member) => (
                 <tr key={member.id || member.email} className="hover:bg-[var(--bg-muted)] transition-colors group">
                   <td className="px-5 py-3 font-medium">
-                    {member.name || <span className="text-[var(--fg-muted)] italic">Pending...</span>}
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-[var(--bg-subtle)] border border-[var(--border-hairline)] overflow-hidden flex items-center justify-center shrink-0">
+                        {member.avatar_url ? (
+                          <img src={member.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-xs font-medium text-[var(--fg-subtle)] uppercase">
+                            {member.name ? member.name.charAt(0) : member.email.charAt(0)}
+                          </span>
+                        )}
+                      </div>
+                      {member.name || <span className="text-[var(--fg-muted)] italic">Pending...</span>}
+                    </div>
                   </td>
                   <td className="px-5 py-3 text-[var(--fg-muted)] truncate max-w-[200px]">
                     {member.email}
