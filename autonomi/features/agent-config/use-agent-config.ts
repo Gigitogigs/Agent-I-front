@@ -8,14 +8,23 @@ export type ConfigTabId = "models" | "prompt" | "guardrails" | "hitl";
 export interface Provider {
   id: string;
   name: string;
-  models: string[];
 }
 
-export const PROVIDERS: Provider[] = [
-  { id: "anthropic", name: "Anthropic", models: ["claude-3-5-sonnet-20240620", "claude-3-haiku-20240307", "claude-3-opus-20240229"] },
-  { id: "openai", name: "OpenAI", models: ["gpt-4o", "gpt-4-turbo", "gpt-3.5-turbo"] },
-  { id: "ollama", name: "Ollama (Local)", models: ["llama3", "mistral", "phi3"] },
-];
+export function useProviders() {
+  const { activeWorkspaceId } = useAuth();
+  
+  return useQuery<Provider[]>({
+    queryKey: ["workspaces", activeWorkspaceId, "providers"],
+    queryFn: async () => {
+      const raw = await apiClient.get<string[]>(`/workspaces/${activeWorkspaceId}/agents/providers`);
+      return raw.map(p => ({
+        id: p,
+        name: p.charAt(0).toUpperCase() + p.slice(1).replace('-', ' ')
+      }));
+    },
+    enabled: !!activeWorkspaceId,
+  });
+}
 
 export interface HitlBreakpoint {
   id: string;
@@ -72,11 +81,11 @@ export function useUpdateAgentConfig(agentType: ConfigRailItem) {
       const payload: Record<string, any> = {};
       if (data.provider !== undefined) payload.provider = data.provider;
       if (data.model !== undefined) payload.model = data.model;
-      if (data.fallbackModel !== undefined) payload.fallback_model = data.fallbackModel;
-      if (data.systemPrompt !== undefined) payload.system_prompt = data.systemPrompt;
+      if (data.fallbackModel !== undefined) payload.fallbackModel = data.fallbackModel;
+      if (data.systemPrompt !== undefined) payload.systemPrompt = data.systemPrompt;
       if (data.tools !== undefined) payload.tools = data.tools;
       if (data.guardrails !== undefined) payload.guardrails = data.guardrails;
-      if (data.hitlBreakpoints !== undefined) payload.hitl_breakpoints = data.hitlBreakpoints;
+      if (data.hitlBreakpoints !== undefined) payload.hitlBreakpoints = data.hitlBreakpoints;
       
       return apiClient.patch(`/workspaces/${activeWorkspaceId}/agents/${agentType}`, payload);
     },

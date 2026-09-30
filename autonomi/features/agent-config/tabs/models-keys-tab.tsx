@@ -16,7 +16,6 @@ export function ModelsKeysTab({ config, providers, onChange, isGlobal = false, o
   const [newApiKey, setNewApiKey] = useState("");
 
   const selectedProvider = providers.find((p) => p.id === config.provider);
-  const availableModels = selectedProvider?.models || [];
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -29,8 +28,7 @@ export function ModelsKeysTab({ config, providers, onChange, isGlobal = false, o
             value={config.provider || ""}
             onChange={(e) => {
               const provider = e.target.value;
-              const models = providers.find((p) => p.id === provider)?.models || [];
-              onChange({ provider, model: models[0] || "" });
+              onChange({ provider, model: "" });
             }}
             disabled={!isGlobal}
             className={`w-full px-3 py-2 text-sm bg-[var(--bg-surface)] text-[var(--fg-base)] border border-[var(--border-hairline)] rounded focus:outline-none transition-colors ${
@@ -43,7 +41,7 @@ export function ModelsKeysTab({ config, providers, onChange, isGlobal = false, o
           </select>
           {!isGlobal && (
             <p className="text-xs text-[var(--fg-muted)] mt-2">
-              Provider selection is locked at the workspace level. Change this in the <strong>Global Policy</strong> tab.
+              Provider selection is locked at the workspace level. Change this in the <strong>Global Config</strong> tab.
             </p>
           )}
         </div>
@@ -52,46 +50,46 @@ export function ModelsKeysTab({ config, providers, onChange, isGlobal = false, o
       {/* Model */}
       <div className="grid grid-cols-[160px_1fr] items-start gap-4">
         <label className="text-sm font-medium text-[var(--fg-base)] mt-2">Model</label>
-        <select
+        <input
+          type="text"
           value={config.model || ""}
           onChange={(e) => onChange({ model: e.target.value })}
+          placeholder="e.g. gpt-4o, claude-3-5-sonnet"
           className="w-full px-3 py-2 text-sm bg-[var(--bg-surface)] text-[var(--fg-base)] border border-[var(--border-hairline)] rounded focus:outline-none focus:border-[var(--fg-base)] transition-colors"
-        >
-          {availableModels.map((m) => (
-            <option key={m} value={m}>{m}</option>
-          ))}
-        </select>
+        />
       </div>
 
       {/* API Key Hint */}
-      <div className="grid grid-cols-[160px_1fr] items-start gap-4">
-        <label className="text-sm font-medium text-[var(--fg-base)] mt-2">API Key</label>
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <input
-              type={showKey ? "text" : "password"}
-              value={newApiKey || config.apiKeyHint || ""}
-              onChange={(e) => setNewApiKey(e.target.value)}
-              placeholder={`sk-${config.provider || "provider"}-...`}
-              className="w-full pl-3 pr-10 py-2 text-sm bg-[var(--bg-surface)] text-[var(--fg-base)] border border-[var(--border-hairline)] rounded focus:outline-none focus:border-[var(--fg-base)] transition-colors"
-            />
-            <button
-              onClick={() => setShowKey(!showKey)}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--fg-subtle)] hover:text-[var(--fg-base)] p-1 transition-colors"
-              title={showKey ? "Hide key" : "Show key"}
+      {isGlobal && (
+        <div className="grid grid-cols-[160px_1fr] items-start gap-4">
+          <label className="text-sm font-medium text-[var(--fg-base)] mt-2">API Key</label>
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <input
+                type={showKey ? "text" : "password"}
+                value={newApiKey || config.apiKeyHint || ""}
+                onChange={(e) => setNewApiKey(e.target.value)}
+                placeholder={`sk-${config.provider || "provider"}-...`}
+                className="w-full pl-3 pr-10 py-2 text-sm bg-[var(--bg-surface)] text-[var(--fg-base)] border border-[var(--border-hairline)] rounded focus:outline-none focus:border-[var(--fg-base)] transition-colors"
+              />
+              <button
+                onClick={() => setShowKey(!showKey)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--fg-subtle)] hover:text-[var(--fg-base)] p-1 transition-colors"
+                title={showKey ? "Hide key" : "Show key"}
+              >
+                {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
+              </button>
+            </div>
+            <button 
+              onClick={() => config.provider && newApiKey && onSaveApiKey(config.provider, newApiKey)}
+              disabled={!newApiKey || isSavingApiKey}
+              className="px-4 py-2 text-sm font-medium text-[var(--fg-base)] border border-[var(--border-hairline)] bg-[var(--bg-surface)] rounded hover:bg-[var(--bg-muted)] disabled:opacity-50 transition-colors"
             >
-              {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
+              {isSavingApiKey ? "Saving..." : "Save Key"}
             </button>
           </div>
-          <button 
-            onClick={() => config.provider && newApiKey && onSaveApiKey(config.provider, newApiKey)}
-            disabled={!newApiKey || isSavingApiKey}
-            className="px-4 py-2 text-sm font-medium text-[var(--fg-base)] border border-[var(--border-hairline)] bg-[var(--bg-surface)] rounded hover:bg-[var(--bg-muted)] disabled:opacity-50 transition-colors"
-          >
-            {isSavingApiKey ? "Saving..." : "Save Key"}
-          </button>
         </div>
-      </div>
+      )}
 
       {/* Fallback Model */}
       <div className="grid grid-cols-[160px_1fr] items-start gap-4">
@@ -99,17 +97,13 @@ export function ModelsKeysTab({ config, providers, onChange, isGlobal = false, o
           <label className="text-sm font-medium text-[var(--fg-base)]">Fallback Model</label>
           <p className="text-xs text-[var(--fg-muted)] mt-1 pr-4">Used by Model Router if primary fails.</p>
         </div>
-        <select
+        <input
+          type="text"
           value={config.fallbackModel || ""}
           onChange={(e) => onChange({ fallbackModel: e.target.value })}
+          placeholder="e.g. gpt-3.5-turbo (Optional)"
           className="w-full px-3 py-2 text-sm bg-[var(--bg-surface)] text-[var(--fg-base)] border border-[var(--border-hairline)] rounded focus:outline-none focus:border-[var(--fg-base)] transition-colors"
-        >
-          <option value="">None</option>
-          {/* In a real app, this would be a grouped dropdown of all models across all providers */}
-          <option value="gpt-4o">gpt-4o (OpenAI)</option>
-          <option value="gpt-3.5-turbo">gpt-3.5-turbo (OpenAI)</option>
-          <option value="claude-3-haiku-20240307">claude-3-haiku (Anthropic)</option>
-        </select>
+        />
       </div>
     </div>
   );

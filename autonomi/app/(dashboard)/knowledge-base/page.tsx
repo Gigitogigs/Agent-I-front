@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, Database, Loader2 } from "lucide-react";
 import { EmptyState } from "@/components/shared/empty-state";
 import { UploadZone } from "@/features/knowledge/upload-zone";
@@ -22,6 +22,9 @@ export default function KnowledgeBasePage() {
   const { data: documents = [], isLoading, error } = useKnowledgeDocuments(searchQuery, activeStatus);
   const deleteMutation = useDeleteDocument();
   const retryMutation = useRetryDocument();
+  
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   function handleDelete(id: string) {
     if (confirm("Are you sure you want to delete this document?")) {
@@ -82,7 +85,7 @@ export default function KnowledgeBasePage() {
 
         {/* List Body */}
         <div className="border-x border-[var(--border-hairline)] rounded-b-lg overflow-hidden border-b -mt-4 bg-[var(--bg-surface)]">
-          {isLoading ? (
+          {(!mounted || isLoading) ? (
             <div className="flex items-center justify-center p-8">
               <Loader2 className="animate-spin text-[var(--fg-muted)]" size={24} />
             </div>

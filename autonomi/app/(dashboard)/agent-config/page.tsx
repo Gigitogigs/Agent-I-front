@@ -11,7 +11,7 @@ import { PromptToolsTab } from "@/features/agent-config/tabs/prompt-tools-tab";
 import { GuardrailsTab } from "@/features/agent-config/tabs/guardrails-tab";
 import { HitlTab } from "@/features/agent-config/tabs/hitl-tab";
 import {
-  PROVIDERS,
+  useProviders,
   useAgentConfigs,
   useUpdateAgentConfig,
   useUpdateProviderApiKey,
@@ -40,7 +40,11 @@ export default function AgentConfigPage() {
   const [activeTab, setActiveTab] = useState<ConfigTabId>("models");
   
   const { data: serverConfigs, isLoading, error } = useAgentConfigs();
+  const { data: providers = [] } = useProviders();
   const [configs, setConfigs] = useState<AgentConfigOut | null>(null);
+  
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   
   // Track which rails have unsaved changes to only save those
   const [dirtyRails, setDirtyRails] = useState<Set<ConfigRailItem>>(new Set());
@@ -129,7 +133,7 @@ export default function AgentConfigPage() {
         </p>
       </div>
 
-      {isLoading ? (
+      {(!mounted || isLoading) ? (
         <div className="flex-1 flex items-center justify-center">
           <Loader2 className="animate-spin text-[var(--fg-muted)]" size={32} />
         </div>
@@ -152,7 +156,7 @@ export default function AgentConfigPage() {
                   />
                 ))}
                 <RailItem
-                  label="Global Policy"
+                  label="Global Config"
                   active={activeRail === "global"}
                   onClick={() => setActiveRail("global" as ConfigRailItem)}
                   dividerAbove
@@ -174,7 +178,7 @@ export default function AgentConfigPage() {
                     {activeTab === "models" && (
                       <ModelsKeysTab
                         config={activeConfig}
-                        providers={PROVIDERS}
+                        providers={providers}
                         onChange={handleConfigChange}
                         isGlobal={activeRail === "global"}
                         onSaveApiKey={async (providerId, apiKey) => {
