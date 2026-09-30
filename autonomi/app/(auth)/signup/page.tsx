@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
+import { Wordmark } from "@/components/Wordmark";
 
 // Note: metadata export works in server components only.
 // Move to a separate layout.tsx if needed, or use generateMetadata.
@@ -59,9 +60,7 @@ export default function SignupPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2">
-            <span className="text-xl font-semibold tracking-tight text-[var(--fg-base)]">
-              Autonomi
-            </span>
+            <Wordmark className="text-3xl text-[var(--fg-base)]" />
           </div>
         </div>
 
@@ -74,7 +73,7 @@ export default function SignupPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="px-8 pt-5 pb-7 space-y-4">
-            
+
             {errorMsg && (
               <div className="p-3 text-xs text-[var(--color-danger)] bg-[var(--bg-subtle)] border border-[var(--color-danger)] rounded">
                 {errorMsg}

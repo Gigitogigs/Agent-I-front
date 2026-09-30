@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient, axiosInstance } from "@/lib/api-client";
 import { tokenStore } from "@/lib/token-store";
+import { Wordmark } from "@/components/Wordmark";
 
 interface LoginResponse {
   user: { id: string; name: string; email: string; avatarUrl?: string };
@@ -54,9 +55,7 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2">
-            <span className="text-xl font-semibold tracking-tight text-[var(--fg-base)]">
-              Autonomi
-            </span>
+            <Wordmark className="text-3xl text-[var(--fg-base)]" />
           </div>
         </div>
 
@@ -74,7 +73,7 @@ export default function LoginPage() {
                 {errorMsg}
               </div>
             )}
-            
+
             {/* Email */}
             <div className="space-y-1.5">
               <label

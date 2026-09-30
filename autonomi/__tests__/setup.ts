@@ -21,3 +21,19 @@ vi.mock('next/link', () => ({
     return React.createElement('a', { href, ...props }, children);
   }
 }));
+
+vi.mock('next/font/local', () => ({
+  default: () => ({
+    className: 'mocked-local-font',
+    variable: '--font-local',
+    style: { fontFamily: 'mocked-font' },
+  }),
+}));
+
+vi.mock('next/font/google', () => ({
+  Inter: () => ({
+    className: 'mocked-inter-font',
+    variable: '--font-sans',
+    style: { fontFamily: 'Inter' },
+  }),
+}));
