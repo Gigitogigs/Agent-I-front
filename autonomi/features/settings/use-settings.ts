@@ -49,9 +49,30 @@ export interface Integration {
   workspace_id: string;
   integration_type: string;
   name: string;
+  domain?: string;
+  is_primary?: boolean;
   status: string;
   last_checked_at: string | null;
   created_at: string;
+}
+
+export interface ConnectorConfigField {
+  type: string;
+  required: boolean;
+  title: string;
+  description?: string;
+  default?: any;
+}
+
+export interface ConnectorCatalogEntry {
+  id: string;
+  name: string;
+  domains: string[];
+  config_schema: {
+    type: string;
+    properties: Record<string, ConnectorConfigField>;
+    required?: string[];
+  };
 }
 
 import type { UserOut } from "@/hooks/use-auth";
@@ -174,6 +195,40 @@ export function useDeleteIntegration() {
   return useMutation({
     mutationFn: (id: string) =>
       apiClient.delete(`/workspaces/${activeWorkspaceId}/settings/integrations/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["workspaces", activeWorkspaceId, "settings", "integrations"] });
+    },
+  });
+}
+
+export function useConnectorCatalog() {
+  const { activeWorkspaceId } = useAuth();
+  return useQuery<ConnectorCatalogEntry[]>({
+    queryKey: ["workspaces", activeWorkspaceId, "settings", "connector-catalog"],
+    queryFn: () =>
+      apiClient.get<ConnectorCatalogEntry[]>(`/workspaces/${activeWorkspaceId}/settings/connector-catalog`),
+    enabled: !!activeWorkspaceId,
+  });
+}
+
+export function useUpdateIntegration() {
+  const queryClient = useQueryClient();
+  const { activeWorkspaceId } = useAuth();
+  return useMutation({
+    mutationFn: ({ id, ...data }: { id: string; name?: string; config?: any; is_primary?: boolean }) =>
+      apiClient.patch(`/workspaces/${activeWorkspaceId}/settings/integrations/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["workspaces", activeWorkspaceId, "settings", "integrations"] });
+    },
+  });
+}
+
+export function useVerifyIntegration() {
+  const queryClient = useQueryClient();
+  const { activeWorkspaceId } = useAuth();
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiClient.post(`/workspaces/${activeWorkspaceId}/settings/integrations/${id}/verify`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["workspaces", activeWorkspaceId, "settings", "integrations"] });
     },
